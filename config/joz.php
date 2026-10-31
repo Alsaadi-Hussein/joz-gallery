@@ -29,4 +29,18 @@ return [
 
     'seed_demo' => (bool) env('SEED_DEMO', true),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Trusted proxies
+    |--------------------------------------------------------------------------
+    |
+    | Leave empty on a normal cPanel host. Behind Cloudflare or another proxy,
+    | every visitor would otherwise appear to share one address and the rate
+    | limits would block real customers together. Comma separated, or * to
+    | trust whatever proxy is in front of the site.
+    |
+    */
+
+    'trusted_proxies' => env('TRUSTED_PROXIES'),
+
 ];

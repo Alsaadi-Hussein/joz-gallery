@@ -240,3 +240,30 @@
 .order-steps .is-done { color: var(--walnut); font-weight: 500; }
 .order-steps .is-done i { background: var(--walnut); border-color: var(--walnut); }
 .order-steps .is-done:not(:first-child)::before { background: var(--walnut); }
+
+/* ---------- Mega menu: opens over the page, so the header keeps its demo layout ---------- */
+.main-nav .mega { position: static; }
+.mega__panel {
+  position: absolute;
+  inset-inline: 0;
+  top: 100%;
+  z-index: 30;
+  padding-block: 22px 26px;
+  background: var(--paper);
+  border-block-end: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity .2s, transform .2s var(--ease), visibility .2s;
+}
+.mega:hover .mega__panel,
+.mega:focus-within .mega__panel { visibility: visible; opacity: 1; transform: none; }
+.main-nav .mega__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--gap); }
+.main-nav .mega__panel a::after { content: none; }
+.mega__item { display: grid; gap: 8px; font-weight: 500; color: var(--walnut-ink); }
+.mega__item img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--r-sm); background: var(--sand); transition: transform .4s var(--ease); }
+.mega__item:hover img { transform: scale(1.03); }
+.main-nav .mega__subs { display: grid; gap: 2px; margin-top: 6px; font-size: var(--fs-small); }
+.mega__subs a { color: var(--muted); }
+.mega__subs a:hover { color: var(--walnut); }

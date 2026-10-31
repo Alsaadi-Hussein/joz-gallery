@@ -3,6 +3,7 @@
 use App\Models\Setting;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Routing\Route;
+use Illuminate\Support\Facades\Route as RouteFacade;
 
 if (! function_exists('shop_route')) {
     /**
@@ -37,19 +38,25 @@ if (! function_exists('shop_link')) {
 
 if (! function_exists('alternate_url')) {
     /**
-     * The current page in another language, or the home page when there is no
-     * matching route, as on a 404.
+     * The current page in another language. Falls back to the home page when that
+     * page does not exist there: no matching route on a 404, an admin or sitemap
+     * route with no English twin, or a signed link, whose signature would not fit.
      */
     function alternate_url(string $locale, bool $keepQuery = true): string
     {
         $route = request()->route();
         $name = $route instanceof Route ? $route->getName() : null;
+        $base = preg_replace('/^en\./', '', (string) $name);
+        $target = ($locale === 'en' ? 'en.' : '').$base;
 
-        if ($name === null) {
+        $isSigned = $route instanceof Route
+            && collect($route->middleware())->contains(fn (mixed $middleware) => is_string($middleware) && str_starts_with($middleware, 'signed'));
+
+        if ($name === null || $isSigned || ! RouteFacade::has($target)) {
             return shop_route('home', locale: $locale);
         }
 
-        $url = shop_route(preg_replace('/^en\./', '', $name), $route->parameters(), $locale);
+        $url = shop_route($base, $route->parameters(), $locale);
         $query = request()->getQueryString();
 
         return $keepQuery && $query ? "{$url}?{$query}" : $url;

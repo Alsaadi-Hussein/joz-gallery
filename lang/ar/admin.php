@@ -110,6 +110,17 @@ return [
         'delivery_fee' => 'أجور التوصيل',
     ],
 
+    'dashboard' => [
+        'today' => 'طلبات اليوم',
+        'month_sales' => 'مبيعات هذا الشهر',
+        'month_sales_hint' => 'الطلبات المسلّمة، شاملة التوصيل',
+        'awaiting' => 'طلبات تنتظر التأكيد',
+        'awaiting_hint' => 'اضغط لعرضها',
+        'low_stock' => 'منتجات مخزونها منخفض',
+        'low_stock_empty' => 'لا توجد منتجات بمخزون منخفض',
+        'update_stock' => 'تعديل',
+    ],
+
     'offer' => [
         'singular' => 'عرض',
         'plural' => 'العروض',

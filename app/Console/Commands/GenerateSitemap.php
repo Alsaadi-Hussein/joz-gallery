@@ -13,7 +13,7 @@ use Spatie\Sitemap\Sitemap;
 use Spatie\Sitemap\Tags\Url;
 
 #[Signature('sitemap:generate')]
-#[Description('Write public/sitemap.xml with every public page in both languages')]
+#[Description('Write the sitemap with every public page in both languages')]
 class GenerateSitemap extends Command
 {
     private const LOCALES = ['ar', 'en'];
@@ -38,7 +38,8 @@ class GenerateSitemap extends Command
             fn (Page $page) => $this->add($sitemap, 'page', $page, $page->updated_at),
         );
 
-        $sitemap->writeToFile(public_path('sitemap.xml'));
+        // Kept in storage and served by a route, so it works wherever public/ ends up on the host.
+        $sitemap->writeToDisk('local', 'sitemap.xml');
 
         $this->info('Sitemap written.');
 

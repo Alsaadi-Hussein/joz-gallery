@@ -4,18 +4,29 @@ use App\Models\Category;
 use App\Models\Page;
 use App\Models\Product;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Storage;
 
 describe('sitemap', function () {
-    afterEach(function () {
-        @unlink(public_path('sitemap.xml'));
-    });
+    beforeEach(fn () => Storage::fake('local'));
 
     function sitemap(): string
     {
         test()->artisan('sitemap:generate')->assertSuccessful();
 
-        return file_get_contents(public_path('sitemap.xml'));
+        return Storage::disk('local')->get('sitemap.xml');
     }
+
+    it('is served at /sitemap.xml as XML', function () {
+        sitemap();
+
+        $this->get('/sitemap.xml')
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/xml');
+    });
+
+    it('returns 404 until it has been generated', function () {
+        $this->get('/sitemap.xml')->assertNotFound();
+    });
 
     it('lists public pages in both languages', function () {
         Category::factory()->create(['slug' => 'sofas']);

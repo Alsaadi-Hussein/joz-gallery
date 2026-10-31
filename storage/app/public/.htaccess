@@ -1,0 +1,11 @@
+# Everything in here comes from uploads. Files are served, never executed,
+# so a script that somehow got uploaded cannot run.
+Options -Indexes
+
+<FilesMatch "\.(?i:php[0-9]?|phtml|phar|pl|py|cgi|sh)$">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>

@@ -2,6 +2,7 @@
 
 use App\Models\Banner;
 use App\Models\Category;
+use App\Models\Order;
 use App\Models\Page;
 use App\Models\Product;
 use Database\Seeders\PageSeeder;
@@ -121,6 +122,20 @@ describe('hidden content', function () {
 it('renders the 404 page in the store layout and the right language', function () {
     $this->get('/nothing-here')->assertNotFound()->assertSee(__('shop.errors.not_found_title'))->assertSee('site-header', false);
     $this->get('/en/nothing-here')->assertNotFound()->assertSee('Page not found');
+});
+
+it('shows the 404 page for a missing record in the admin', function () {
+    $this->actingAs(owner());
+
+    $this->get('/admin/products/999999/edit')->assertNotFound()->assertSee(__('shop.errors.not_found_title'));
+});
+
+it('sends the language switch home from a signed page', function () {
+    $order = Order::factory()->create();
+
+    $this->get($order->thanksUrl())
+        ->assertOk()
+        ->assertSee('class="lang-switch" href="'.url('/en').'"', false);
 });
 
 it('strips scripts from page content', function () {

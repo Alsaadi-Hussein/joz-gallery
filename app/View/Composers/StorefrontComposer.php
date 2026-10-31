@@ -17,7 +17,10 @@ class StorefrontComposer
         $instagram = Setting::get('instagram');
 
         $view->with([
-            'menuSections' => Category::query()->active()->whereNull('parent_id')->orderBy('sort_order')->get(),
+            'menuSections' => Category::query()->active()->whereNull('parent_id')
+                ->with(['media', 'children' => fn ($query) => $query->active()->orderBy('sort_order')])
+                ->orderBy('sort_order')
+                ->get(),
             'store' => [
                 'phone' => Phone::local(Setting::get('store_phone')),
                 'whatsapp' => Phone::international(Setting::get('whatsapp_number')),

@@ -60,12 +60,13 @@ class Order extends Model
 
     /**
      * Signed, because the page shows personal details and the number alone is guessable.
+     * The signature covers the path only, so it survives www, http and proxy differences.
      */
     public function thanksUrl(): string
     {
         $route = ($this->locale === 'en' ? 'en.' : '').'order.thanks';
 
-        return URL::signedRoute($route, ['order' => $this->number]);
+        return URL::signedRoute($route, ['order' => $this->number], absolute: false);
     }
 
     public function isCancelled(): bool

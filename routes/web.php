@@ -9,6 +9,7 @@ use App\Http\Controllers\Shop\PageController;
 use App\Http\Controllers\Shop\ProductController;
 use App\Http\Controllers\Shop\RobotsController;
 use App\Http\Controllers\Shop\SearchController;
+use App\Http\Controllers\Shop\SitemapController;
 use App\Http\Controllers\Shop\TrackController;
 use Illuminate\Support\Facades\Route;
 
@@ -29,7 +30,7 @@ $storefront = function (): void {
     Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout');
     Route::post('/checkout', [CheckoutController::class, 'store'])->middleware('throttle:checkout')->name('checkout.store');
     Route::post('/checkout/quote', [CheckoutController::class, 'quote'])->middleware('throttle:30,1')->name('checkout.quote');
-    Route::get('/order/{order:number}/thanks', [CheckoutController::class, 'thanks'])->middleware('signed')->name('order.thanks');
+    Route::get('/order/{order:number}/thanks', [CheckoutController::class, 'thanks'])->middleware('signed:relative')->name('order.thanks');
 
     Route::get('/track', [TrackController::class, 'show'])->name('track');
     Route::post('/track', [TrackController::class, 'lookup'])->middleware('throttle:10,1')->name('track.lookup');
@@ -39,3 +40,4 @@ Route::middleware('locale:ar')->group($storefront);
 Route::prefix('en')->name('en.')->middleware('locale:en')->group($storefront);
 
 Route::get('/robots.txt', RobotsController::class)->name('robots');
+Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');

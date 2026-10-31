@@ -9,7 +9,28 @@
 
     <nav class="main-nav" aria-label="{{ __('shop.nav.menu') }}">
       <ul>
-        <li><a href="{{ shop_route('home') }}#sections">{{ __('shop.nav.sections') }}</a></li>
+        <li class="mega">
+          <a href="{{ shop_route('home') }}#sections">{{ __('shop.nav.sections') }}</a>
+          <div class="mega__panel">
+            <ul class="mega__grid wrap">
+              @foreach ($menuSections as $section)
+                <li>
+                  <a class="mega__item" href="{{ shop_route('category', $section) }}">
+                    <img src="{{ $section->getFirstMediaUrl('image', 'thumb') }}" alt="" width="200" height="150" loading="lazy" decoding="async">
+                    <span>{{ $section->localized('name') }}</span>
+                  </a>
+                  @if ($section->children->isNotEmpty())
+                    <ul class="mega__subs">
+                      @foreach ($section->children as $child)
+                        <li><a href="{{ shop_route('category', $child) }}">{{ $child->localized('name') }}</a></li>
+                      @endforeach
+                    </ul>
+                  @endif
+                </li>
+              @endforeach
+            </ul>
+          </div>
+        </li>
         <li><a href="{{ shop_route('offers') }}" class="is-accent">{{ __('shop.nav.offers') }}</a></li>
         <li><a href="{{ shop_route('best-sellers') }}">{{ __('shop.nav.best_sellers') }}</a></li>
         <li><a href="{{ shop_route('new') }}">{{ __('shop.nav.new') }}</a></li>
