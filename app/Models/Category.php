@@ -1,0 +1,96 @@
+<?php
+
+namespace App\Models;
+
+use Database\Factories\CategoryFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Image\Enums\Fit;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
+
+#[Fillable(['parent_id', 'name_ar', 'name_en', 'slug', 'sort_order', 'is_active'])]
+class Category extends Model implements HasMedia
+{
+    /** @use HasFactory<CategoryFactory> */
+    use HasFactory, InteractsWithMedia;
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'sort_order' => 'integer',
+            'is_active' => 'boolean',
+        ];
+    }
+
+    /**
+     * @return BelongsTo<Category, $this>
+     */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Category::class, 'parent_id');
+    }
+
+    /**
+     * @return HasMany<Category, $this>
+     */
+    public function children(): HasMany
+    {
+        return $this->hasMany(Category::class, 'parent_id');
+    }
+
+    /**
+     * @return HasMany<Product, $this>
+     */
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
+    }
+
+    /**
+     * Ids of every category below this one, used to keep the parent picker free of loops.
+     *
+     * @return list<int>
+     */
+    public function descendantIds(): array
+    {
+        $parents = Category::query()->pluck('parent_id', 'id');
+        $found = [];
+        $frontier = [$this->id];
+
+        while ($frontier !== []) {
+            $frontier = $parents
+                ->filter(fn (?int $parentId, int $id) => in_array($parentId, $frontier, true) && ! in_array($id, $found, true))
+                ->keys()
+                ->all();
+
+            array_push($found, ...$frontier);
+        }
+
+        return $found;
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('image')
+            ->singleFile()
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp']);
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->addMediaConversion('thumb')
+            ->fit(Fit::Max, 640, 640)
+            ->format('webp')
+            ->nonQueued();
+    }
+}
