@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\DiscountType;
 use Database\Factories\CouponFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -42,6 +43,24 @@ class Coupon extends Model
     protected function code(): Attribute
     {
         return Attribute::make(set: fn (string $value) => mb_strtoupper(trim($value)));
+    }
+
+    /**
+     * @param  Builder<Coupon>  $query
+     */
+    public function scopeWhereCode(Builder $query, string $code): void
+    {
+        $query->where('code', mb_strtoupper(trim($code)));
+    }
+
+    public function isExpired(): bool
+    {
+        return $this->expires_at?->isPast() ?? false;
+    }
+
+    public function isUsedUp(): bool
+    {
+        return $this->usage_limit !== null && $this->used_count >= $this->usage_limit;
     }
 
     /**

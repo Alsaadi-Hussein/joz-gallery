@@ -4,9 +4,12 @@ namespace App\Services;
 
 use App\Enums\OfferScope;
 use App\Models\Category;
+use App\Models\Coupon;
 use App\Models\Offer;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Support\Money;
+use App\Support\OrderTotals;
 use App\Support\PriceQuote;
 use Illuminate\Support\Collection;
 
@@ -59,6 +62,32 @@ class PriceService
         }
 
         return null;
+    }
+
+    /**
+     * Why this coupon cannot be used on this subtotal, ready to show to the shopper,
+     * or null when it can. The subtotal is the one after offers.
+     */
+    public function couponProblem(?Coupon $coupon, int $subtotal): ?string
+    {
+        return match (true) {
+            $coupon === null, ! $coupon->is_active => __('shop.coupon.invalid'),
+            $coupon->isExpired() => __('shop.coupon.expired'),
+            $coupon->isUsedUp() => __('shop.coupon.used_up'),
+            $subtotal < $coupon->min_total => __('shop.coupon.min_total', ['amount' => Money::format($coupon->min_total)]),
+            default => null,
+        };
+    }
+
+    /**
+     * The coupon comes off the subtotal, never the delivery fee, and never takes the
+     * subtotal below zero.
+     */
+    public function totals(int $subtotal, ?Coupon $coupon, int $deliveryFee): OrderTotals
+    {
+        $discount = $coupon?->type->amountOff($subtotal, $coupon->value) ?? 0;
+
+        return new OrderTotals($subtotal, $discount, $deliveryFee);
     }
 
     /**

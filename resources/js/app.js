@@ -3,6 +3,8 @@
   'use strict';
 
   var CART_KEY = 'joz_cart';
+  var CUSTOMER_KEY = 'joz_customer';
+  var CUSTOMER_FIELDS = ['name', 'phone', 'governorate_id', 'area', 'landmark'];
   var SEARCH_DELAY = 220;
 
   var config = JSON.parse(document.querySelector('[data-config]').textContent);
@@ -56,16 +58,22 @@
   });
 
   /* ---------- Cart: the browser keeps ids and quantities, the server keeps prices ---------- */
-  var linesEl = document.querySelector('[data-cart-lines]');
-  var emptyEl = document.querySelector('[data-cart-empty]');
-  var footEl = document.querySelector('[data-cart-foot]');
-  var subtotalEl = document.querySelector('[data-cart-subtotal]');
-  var countTextEl = document.querySelector('[data-cart-count-text]');
-  var waEl = document.querySelector('[data-cart-whatsapp]');
+  // The drawer is on every page and the cart page repeats it, so each part can appear twice.
+  function each(selector, fn) { document.querySelectorAll(selector).forEach(fn); }
 
   var cart = load(CART_KEY, []);
   if (!Array.isArray(cart)) cart = [];
   cart = cart.filter(function (l) { return l && l.product_id && l.qty > 0; });
+
+  var changeListeners = [];
+
+  /* A finished order empties the cart and remembers the delivery details for next time. */
+  var placedEl = document.querySelector('[data-order-placed]');
+  if (placedEl) {
+    save(CUSTOMER_KEY, JSON.parse(placedEl.textContent));
+    cart = [];
+    save(CART_KEY, cart);
+  }
 
   function sameLine(a, productId, variantId) {
     return a.product_id === productId && (a.variant_id || null) === (variantId || null);
@@ -75,17 +83,16 @@
     document.querySelectorAll('[data-cart-count]').forEach(function (b) {
       b.textContent = count; b.hidden = count === 0;
     });
-    countTextEl.textContent = count ? '(' + count + ')' : '';
+    each('[data-cart-count-text]', function (el) { el.textContent = count ? '(' + count + ')' : ''; });
   }
 
   function render(data) {
     setCount(data.count);
-    emptyEl.hidden = data.count > 0;
-    footEl.hidden = data.count === 0;
-    linesEl.hidden = data.count === 0;
-    subtotalEl.textContent = data.subtotal_formatted;
+    each('[data-cart-empty]', function (el) { el.hidden = data.count > 0; });
+    each('[data-cart-foot]', function (el) { el.hidden = data.count === 0; });
+    each('[data-cart-subtotal]', function (el) { el.textContent = data.subtotal_formatted; });
 
-    linesEl.innerHTML = data.lines.map(function (l) {
+    var html = data.lines.map(function (l) {
       var name = l.variant ? l.name + ' (' + l.variant + ')' : l.name;
       var key = l.product_id + ':' + (l.variant_id || '');
       return '<li class="cart-line">' +
@@ -98,11 +105,12 @@
         '<button class="icon-btn cart-line__remove" type="button" data-remove="' + key + '" aria-label="' + esc(i18n.remove) + '"><svg class="ico"><use href="#i-trash"></use></svg></button>' +
         '</li>';
     }).join('');
+    each('[data-cart-lines]', function (el) { el.hidden = data.count === 0; el.innerHTML = html; });
 
     var msg = i18n.waIntro + '\n' + data.lines.map(function (l) {
       return '• ' + l.name + (l.variant ? ' (' + l.variant + ')' : '') + ' × ' + l.qty + ' = ' + l.line_total_formatted;
     }).join('\n') + '\n' + i18n.subtotal + ': ' + data.subtotal_formatted;
-    waEl.setAttribute('href', config.whatsapp + encodeURIComponent(msg));
+    each('[data-cart-whatsapp]', function (el) { el.setAttribute('href', config.whatsapp + encodeURIComponent(msg)); });
   }
 
   var previewRun = 0;
@@ -122,6 +130,7 @@
       });
       save(CART_KEY, cart);
       render(data);
+      changeListeners.forEach(function (fn) { fn(); });
     }).catch(function () {
       if (run === previewRun) toast(i18n.error);
     });
@@ -145,7 +154,7 @@
     }));
   }
 
-  linesEl.addEventListener('click', function (ev) {
+  document.addEventListener('click', function (ev) {
     var q = ev.target.closest('[data-qty]');
     if (q) {
       var line = cart.find(function (l) { var k = parseKey(q.getAttribute('data-key')); return sameLine(l, k.product, k.variant); });
@@ -170,6 +179,97 @@
     setTimeout(function () { btn.classList.remove('is-added'); }, 1200);
     toast(i18n.added + ': ' + btn.getAttribute('data-name'));
   });
+
+  /* ---------- Checkout ---------- */
+  (function () {
+    var form = document.querySelector('[data-checkout]');
+    if (!form) return;
+
+    var governorate = form.querySelector('[data-checkout-governorate]');
+    var couponInput = form.querySelector('[data-checkout-coupon]');
+    var couponMessage = form.querySelector('[data-coupon-message]');
+    var discountRow = form.querySelector('[data-summary-discount-row]');
+    var delivery = form.querySelector('[data-summary-delivery]');
+    var submit = form.querySelector('[data-checkout-submit]');
+    var submitLabel = submit.textContent;
+    var coupon = couponInput.value.trim();
+    var run = 0;
+
+    function text(selector, value) { form.querySelector(selector).textContent = value; }
+
+    function showEmpty(isEmpty) {
+      form.hidden = isEmpty;
+      document.querySelector('[data-checkout-empty]').hidden = !isEmpty;
+    }
+
+    function show(data) {
+      showEmpty(data.count === 0);
+      form.querySelector('[data-summary-lines]').innerHTML = data.lines.map(function (l) {
+        var name = l.variant ? l.name + ' (' + l.variant + ')' : l.name;
+        return '<li><span>' + esc(name) + ' × ' + l.qty + '</span><b>' + esc(l.line_total_formatted) + '</b></li>';
+      }).join('');
+      text('[data-summary-subtotal]', data.subtotal_formatted);
+      text('[data-summary-discount]', '-' + data.discount_formatted);
+      text('[data-summary-total]', data.total_formatted);
+      discountRow.hidden = data.discount === 0;
+      delivery.textContent = data.delivery_fee_formatted || delivery.getAttribute('data-empty');
+      couponMessage.hidden = !data.coupon_message;
+      couponMessage.textContent = data.coupon_message || '';
+      couponMessage.classList.toggle('is-success', data.coupon_applied);
+      couponMessage.classList.toggle('is-error', !data.coupon_applied);
+    }
+
+    function quote() {
+      var current = ++run;
+      fetch(config.quoteUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+        body: JSON.stringify({ items: cart, governorate_id: governorate.value || null, coupon: coupon || null })
+      }).then(function (res) {
+        if (!res.ok) throw new Error(res.status);
+        return res.json();
+      }).then(function (data) {
+        if (current === run) show(data);
+      }).catch(function () {
+        if (current === run) toast(i18n.error);
+      });
+    }
+
+    function applyCoupon() {
+      coupon = couponInput.value.trim();
+      quote();
+    }
+
+    // Someone who has ordered before only needs to confirm their details.
+    var saved = load(CUSTOMER_KEY, null);
+    if (saved) {
+      CUSTOMER_FIELDS.forEach(function (field) {
+        var el = form.elements[field];
+        if (el && !el.value && saved[field]) el.value = saved[field];
+      });
+    }
+
+    governorate.addEventListener('change', quote);
+    form.querySelector('[data-checkout-apply]').addEventListener('click', applyCoupon);
+    couponInput.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter') { ev.preventDefault(); applyCoupon(); }
+    });
+
+    form.addEventListener('submit', function () {
+      form.querySelector('[data-checkout-cart]').value = JSON.stringify(cart);
+      submit.disabled = true;
+      submit.textContent = submit.getAttribute('data-busy');
+    });
+
+    // Coming back with the back button restores the page as it was left.
+    window.addEventListener('pageshow', function () {
+      submit.disabled = false;
+      submit.textContent = submitLabel;
+    });
+
+    changeListeners.push(quote);
+    if (!cart.length) showEmpty(true);
+  })();
 
   if (cart.length) refresh();
 

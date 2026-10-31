@@ -2,12 +2,14 @@
 
 use App\Http\Controllers\Shop\CartController;
 use App\Http\Controllers\Shop\CategoryController;
+use App\Http\Controllers\Shop\CheckoutController;
 use App\Http\Controllers\Shop\CollectionController;
 use App\Http\Controllers\Shop\HomeController;
 use App\Http\Controllers\Shop\PageController;
 use App\Http\Controllers\Shop\ProductController;
 use App\Http\Controllers\Shop\RobotsController;
 use App\Http\Controllers\Shop\SearchController;
+use App\Http\Controllers\Shop\TrackController;
 use Illuminate\Support\Facades\Route;
 
 $storefront = function (): void {
@@ -20,12 +22,17 @@ $storefront = function (): void {
     Route::get('/search', [SearchController::class, 'index'])->name('search');
     Route::get('/search/suggest', [SearchController::class, 'suggest'])->middleware('throttle:60,1')->name('search.suggest');
     Route::get('/page/{page:slug}', PageController::class)->name('page');
+
+    Route::get('/cart', [CartController::class, 'show'])->name('cart');
     Route::post('/cart/preview', [CartController::class, 'preview'])->middleware('throttle:120,1')->name('cart.preview');
 
-    // Linked from the header and footer; the real pages arrive with checkout in Phase 3.
-    Route::view('/cart', 'shop.coming-soon')->name('cart');
-    Route::view('/checkout', 'shop.coming-soon')->name('checkout');
-    Route::view('/track', 'shop.coming-soon')->name('track');
+    Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout');
+    Route::post('/checkout', [CheckoutController::class, 'store'])->middleware('throttle:checkout')->name('checkout.store');
+    Route::post('/checkout/quote', [CheckoutController::class, 'quote'])->middleware('throttle:30,1')->name('checkout.quote');
+    Route::get('/order/{order:number}/thanks', [CheckoutController::class, 'thanks'])->middleware('signed')->name('order.thanks');
+
+    Route::get('/track', [TrackController::class, 'show'])->name('track');
+    Route::post('/track', [TrackController::class, 'lookup'])->middleware('throttle:10,1')->name('track.lookup');
 };
 
 Route::middleware('locale:ar')->group($storefront);

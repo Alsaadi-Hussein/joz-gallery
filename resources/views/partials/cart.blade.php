@@ -14,5 +14,6 @@
     <p class="muted small">{{ __('shop.cart.delivery_note') }}</p>
     <a class="btn btn--walnut btn--block" href="{{ shop_route('checkout') }}">{{ __('shop.cart.checkout') }}<x-ico name="arrow" class="ico-dir" /></a>
     <a class="btn btn--sage btn--block" href="{{ whatsapp_url() }}" target="_blank" rel="noopener" data-cart-whatsapp><x-ico name="whatsapp" />{{ __('shop.whatsapp.order') }}</a>
+    <a class="link-arrow cart-foot__view" href="{{ shop_route('cart') }}">{{ __('shop.cart.view') }}<x-ico name="arrow" class="ico-dir" /></a>
   </div>
 </dialog>

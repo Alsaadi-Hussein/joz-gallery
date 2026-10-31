@@ -6,6 +6,7 @@
     $clientConfig = [
         'previewUrl' => shop_route('cart.preview'),
         'suggestUrl' => shop_route('search.suggest'),
+        'quoteUrl' => shop_route('checkout.quote'),
         'whatsapp' => whatsapp_url(''),
         'i18n' => [
             'remove' => __('shop.cart.remove'),

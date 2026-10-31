@@ -6,6 +6,7 @@ use App\Enums\DiscountType;
 use App\Enums\OfferScope;
 use App\Models\Banner;
 use App\Models\Category;
+use App\Models\Coupon;
 use App\Models\Offer;
 use App\Models\Product;
 use Illuminate\Database\Eloquent\Model;
@@ -20,6 +21,8 @@ use Spatie\MediaLibrary\HasMedia;
 class DemoCatalogSeeder extends Seeder
 {
     private const OFFER_DAYS = 14;
+
+    private const COUPON_DAYS = 60;
 
     private const CATEGORIES = [
         ['living-room', 'غرف المعيشة', 'Living Room', 'sec-living.webp'],
@@ -95,6 +98,14 @@ class DemoCatalogSeeder extends Seeder
 
         $this->seedOffers($products);
         $this->seedBanners();
+
+        Coupon::query()->firstOrCreate(['code' => 'JOZ10'], [
+            'type' => DiscountType::Percent,
+            'value' => 10,
+            'min_total' => 100_000,
+            'usage_limit' => 100,
+            'expires_at' => now()->addDays(self::COUPON_DAYS)->endOfDay(),
+        ]);
     }
 
     /**
