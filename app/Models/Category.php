@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasLocalizedFields;
 use Database\Factories\CategoryFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,7 +19,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 class Category extends Model implements HasMedia
 {
     /** @use HasFactory<CategoryFactory> */
-    use HasFactory, InteractsWithMedia;
+    use HasFactory, HasLocalizedFields, InteractsWithMedia;
 
     /**
      * Get the attributes that should be cast.
@@ -54,6 +56,14 @@ class Category extends Model implements HasMedia
     public function products(): HasMany
     {
         return $this->hasMany(Product::class);
+    }
+
+    /**
+     * @param  Builder<Category>  $query
+     */
+    public function scopeActive(Builder $query): void
+    {
+        $query->where('is_active', true);
     }
 
     /**

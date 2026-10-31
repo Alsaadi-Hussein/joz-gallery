@@ -81,8 +81,13 @@ it('builds the store from the demo, and running it again changes nothing', funct
         $media = $product->getFirstMedia('gallery');
 
         expect($media->hasGeneratedConversion('thumb'))->toBeTrue()
-            ->and($media->hasGeneratedConversion('large'))->toBeTrue();
+            ->and($media->hasGeneratedConversion('large'))->toBeTrue()
+            ->and($media->hasGeneratedConversion('share'))->toBeTrue();
     });
+
+    // New arrivals keep the demo's order when listed newest first.
+    expect(Product::query()->where('is_new', true)->latest()->pluck('slug')->all())
+        ->toBe(['sand-three-seater', 'swivel-lounge-chair', 'charcoal-floor-lamp', 'ivory-ceramic-vase']);
 
     // Banners carry both the desktop and phone images.
     Banner::query()->get()->each(function (Banner $banner) {

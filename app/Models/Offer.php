@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\DiscountType;
 use App\Enums\OfferScope;
+use App\Models\Concerns\HasLocalizedFields;
 use Database\Factories\OfferFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 class Offer extends Model
 {
     /** @use HasFactory<OfferFactory> */
-    use HasFactory;
+    use HasFactory, HasLocalizedFields;
 
     /**
      * Get the attributes that should be cast.

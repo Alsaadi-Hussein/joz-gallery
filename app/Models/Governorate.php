@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasLocalizedFields;
 use Database\Factories\GovernorateFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Governorate extends Model
 {
     /** @use HasFactory<GovernorateFactory> */
-    use HasFactory;
+    use HasFactory, HasLocalizedFields;
 
     /**
      * Get the attributes that should be cast.

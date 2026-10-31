@@ -127,8 +127,10 @@ class DemoCatalogSeeder extends Seeder
     {
         $products = [];
 
-        foreach (self::PRODUCTS as $data) {
+        foreach (self::PRODUCTS as $index => $data) {
             $product = Product::query()->firstOrCreate(['slug' => $data['slug']], [
+                // Stepped back in time so "newest first" keeps the demo's order.
+                'created_at' => now()->subMinutes($index),
                 'category_id' => $categories[$data['category']]->id,
                 'name_ar' => $data['name_ar'],
                 'name_en' => $data['name_en'],

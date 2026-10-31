@@ -1,8 +1,17 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
+/*
+|--------------------------------------------------------------------------
+| Scheduled work
+|--------------------------------------------------------------------------
+|
+| Shared hosting has no long-running workers, so one cron line runs
+| schedule:run every minute and everything background starts from here.
+|
+*/
+
+Schedule::command('queue:work --stop-when-empty --max-time=50')->everyMinute()->withoutOverlapping();
+
+Schedule::command('sitemap:generate')->daily();

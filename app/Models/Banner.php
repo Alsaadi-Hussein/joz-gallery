@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasLocalizedFields;
 use Database\Factories\BannerFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -18,7 +19,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 class Banner extends Model implements HasMedia
 {
     /** @use HasFactory<BannerFactory> */
-    use HasFactory, InteractsWithMedia;
+    use HasFactory, HasLocalizedFields, InteractsWithMedia;
 
     /**
      * Get the attributes that should be cast.

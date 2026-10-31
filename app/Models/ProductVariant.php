@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasLocalizedFields;
 use Database\Factories\ProductVariantFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ProductVariant extends Model
 {
     /** @use HasFactory<ProductVariantFactory> */
-    use HasFactory;
+    use HasFactory, HasLocalizedFields;
 
     /**
      * Get the attributes that should be cast.
@@ -25,6 +26,14 @@ class ProductVariant extends Model
             'price_delta' => 'integer',
             'stock' => 'integer',
         ];
+    }
+
+    /**
+     * What shoppers pick, such as "Beige / L".
+     */
+    public function label(): string
+    {
+        return collect([$this->localized('color'), $this->size])->filter()->implode(' / ');
     }
 
     /**

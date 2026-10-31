@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasLocalizedFields;
 use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,7 +27,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 class Product extends Model implements HasMedia
 {
     /** @use HasFactory<ProductFactory> */
-    use HasFactory, InteractsWithMedia;
+    use HasFactory, HasLocalizedFields, InteractsWithMedia;
 
     /**
      * Get the attributes that should be cast.
@@ -77,6 +78,16 @@ class Product extends Model implements HasMedia
     }
 
     /**
+     * Products shoppers may see: switched on, in a category that is switched on.
+     *
+     * @param  Builder<Product>  $query
+     */
+    public function scopeVisible(Builder $query): void
+    {
+        $query->where('is_active', true)->whereHas('category', fn (Builder $query) => $query->where('is_active', true));
+    }
+
+    /**
      * @param  Builder<Product>  $query
      */
     public function scopeLowStock(Builder $query, int $threshold): void
@@ -85,6 +96,11 @@ class Product extends Model implements HasMedia
             '(COALESCE((SELECT SUM(stock) FROM product_variants WHERE product_variants.product_id = products.id), products.stock)) <= ?',
             [$threshold],
         );
+    }
+
+    public function imageUrl(string $conversion = 'thumb'): string
+    {
+        return $this->getFirstMediaUrl('gallery', $conversion) ?: asset('assets/img/brand/emblem-walnut.png');
     }
 
     /**
@@ -134,6 +150,13 @@ class Product extends Model implements HasMedia
         $this->addMediaConversion('large')
             ->fit(Fit::Max, 1600, 3200)
             ->format('webp')
+            ->nonQueued();
+
+        // The photo shown when a link is shared: WhatsApp previews want a small landscape JPG.
+        $this->addMediaConversion('share')
+            ->fit(Fit::Crop, 1200, 630)
+            ->format('jpg')
+            ->quality(75)
             ->nonQueued();
     }
 }
