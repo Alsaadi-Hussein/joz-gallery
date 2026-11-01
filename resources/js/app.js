@@ -5,6 +5,8 @@
   var CART_KEY = 'joz_cart';
   var CUSTOMER_KEY = 'joz_customer';
   var CUSTOMER_FIELDS = ['name', 'phone', 'governorate_id', 'area', 'landmark'];
+  var CUSTOMER_DAYS = 30;
+  var DAY_MS = 86400000;
   var SEARCH_DELAY = 220;
 
   var config = JSON.parse(document.querySelector('[data-config]').textContent);
@@ -20,6 +22,10 @@
   function save(key, value) {
     memory[key] = value;
     try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* private mode */ }
+  }
+  function forget(key) {
+    delete memory[key];
+    try { localStorage.removeItem(key); } catch (e) { /* private mode */ }
   }
 
   function esc(s) {
@@ -70,9 +76,18 @@
   /* A finished order empties the cart and remembers the delivery details for next time. */
   var placedEl = document.querySelector('[data-order-placed]');
   if (placedEl) {
-    save(CUSTOMER_KEY, JSON.parse(placedEl.textContent));
+    var placed = JSON.parse(placedEl.textContent);
+    placed.saved_at = Date.now();
+    save(CUSTOMER_KEY, placed);
     cart = [];
     save(CART_KEY, cart);
+  }
+
+  // Someone else may share this device, so the details do not stay for ever.
+  var customer = load(CUSTOMER_KEY, null);
+  if (customer && !(Date.now() - customer.saved_at < CUSTOMER_DAYS * DAY_MS)) {
+    forget(CUSTOMER_KEY);
+    customer = null;
   }
 
   function sameLine(a, productId, variantId) {
@@ -94,14 +109,14 @@
 
     var html = data.lines.map(function (l) {
       var name = l.variant ? l.name + ' (' + l.variant + ')' : l.name;
-      var key = l.product_id + ':' + (l.variant_id || '');
+      var key = esc(l.product_id + ':' + (l.variant_id || ''));
       return '<li class="cart-line">' +
         '<img src="' + esc(l.image) + '" alt="" width="76" height="92">' +
         '<div class="cart-line__info"><a class="cart-line__name" href="' + esc(l.url) + '">' + esc(name) + '</a>' +
         '<span class="cart-line__price">' + esc(l.line_total_formatted) + '</span>' +
         '<div class="qty"><button type="button" data-qty="-1" data-key="' + key + '" aria-label="' + esc(i18n.minus) + '"><svg class="ico"><use href="#i-minus"></use></svg></button>' +
-        '<output>' + l.qty + '</output>' +
-        '<button type="button" data-qty="1" data-key="' + key + '" data-stock="' + l.stock + '" aria-label="' + esc(i18n.plus) + '"><svg class="ico"><use href="#i-plus"></use></svg></button></div></div>' +
+        '<output>' + esc(l.qty) + '</output>' +
+        '<button type="button" data-qty="1" data-key="' + key + '" data-stock="' + esc(l.stock) + '" aria-label="' + esc(i18n.plus) + '"><svg class="ico"><use href="#i-plus"></use></svg></button></div></div>' +
         '<button class="icon-btn cart-line__remove" type="button" data-remove="' + key + '" aria-label="' + esc(i18n.remove) + '"><svg class="ico"><use href="#i-trash"></use></svg></button>' +
         '</li>';
     }).join('');
@@ -206,7 +221,7 @@
       showEmpty(data.count === 0);
       form.querySelector('[data-summary-lines]').innerHTML = data.lines.map(function (l) {
         var name = l.variant ? l.name + ' (' + l.variant + ')' : l.name;
-        return '<li><span>' + esc(name) + ' × ' + l.qty + '</span><b>' + esc(l.line_total_formatted) + '</b></li>';
+        return '<li><span>' + esc(name) + ' × ' + esc(l.qty) + '</span><b>' + esc(l.line_total_formatted) + '</b></li>';
       }).join('');
       text('[data-summary-subtotal]', data.subtotal_formatted);
       text('[data-summary-discount]', '-' + data.discount_formatted);
@@ -241,11 +256,10 @@
     }
 
     // Someone who has ordered before only needs to confirm their details.
-    var saved = load(CUSTOMER_KEY, null);
-    if (saved) {
+    if (customer) {
       CUSTOMER_FIELDS.forEach(function (field) {
         var el = form.elements[field];
-        if (el && !el.value && saved[field]) el.value = saved[field];
+        if (el && !el.value && customer[field]) el.value = customer[field];
       });
     }
 

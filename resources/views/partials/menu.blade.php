@@ -19,7 +19,7 @@
     <a href="{{ shop_route('page', 'contact') }}">{{ __('shop.nav.contact') }}</a>
   </nav>
   <div class="drawer__foot">
-    <a class="btn btn--sage btn--block" href="{{ whatsapp_url() }}" target="_blank" rel="noopener"><x-ico name="whatsapp" />{{ __('shop.whatsapp.chat') }}</a>
+    <a class="btn btn--sage btn--block" href="{{ whatsapp_url() }}" target="_blank" rel="noopener noreferrer"><x-ico name="whatsapp" />{{ __('shop.whatsapp.chat') }}</a>
     <a class="lang-switch lang-switch--wide" href="{{ alternate_url($otherLocale) }}" hreflang="{{ $otherLocale }}">{{ __('shop.language.switch_long') }}</a>
   </div>
 </dialog>

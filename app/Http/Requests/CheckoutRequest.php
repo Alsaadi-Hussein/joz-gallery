@@ -2,17 +2,22 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\DropsArrayFields;
 use App\Models\Governorate;
 use App\Support\Phone;
 use Illuminate\Validation\Rule;
 
 class CheckoutRequest extends CartPreviewRequest
 {
+    use DropsArrayFields;
+
     /**
      * The cart arrives as JSON in a hidden field, because it lives in the browser.
      */
     protected function prepareForValidation(): void
     {
+        $this->dropArrayFields();
+
         $this->merge([
             'phone' => Phone::normalize($this->string('phone')->toString()),
             'items' => json_decode($this->string('cart')->toString(), true) ?? [],

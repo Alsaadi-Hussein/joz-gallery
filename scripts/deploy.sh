@@ -95,6 +95,15 @@ php_id="$("$PHP" -r 'echo PHP_VERSION_ID;')"
 [ "$(env_value APP_DEBUG)" = "false" ] || stop "APP_DEBUG must be false in $TARGET/.env."
 [ "$(env_value APP_ENV)" = "production" ] || stop "APP_ENV must be production in $TARGET/.env."
 
+# Left as they are, links in emails and customer mail would point at the placeholders.
+case "$(env_value APP_URL)" in
+    "" | *example.com* | *example.org*) stop "Set APP_URL in $TARGET/.env to the site's real address." ;;
+esac
+
+case "$(env_value MAIL_FROM_ADDRESS)" in
+    "" | *example.com* | *example.org*) stop "Set MAIL_FROM_ADDRESS in $TARGET/.env to a real address." ;;
+esac
+
 free_mb="$(df -Pm "$TARGET" | awk 'NR==2 {print $4}')"
 [ "${free_mb:-0}" -ge "$MIN_FREE_MB" ] || stop "Only ${free_mb:-0} MB of disk is free. At least $MIN_FREE_MB MB is needed."
 

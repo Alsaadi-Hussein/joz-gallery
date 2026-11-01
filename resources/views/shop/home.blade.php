@@ -158,14 +158,14 @@
         <h2 class="ig__title" id="ig-title">{{ __('shop.home.ig_title') }}</h2>
         <p>{{ __('shop.home.ig_text') }}</p>
         <div class="ig__actions">
-          <a class="btn btn--walnut" href="{{ $store['instagram_url'] }}" target="_blank" rel="noopener"><x-ico name="instagram" />{{ __('shop.home.ig_follow') }}</a>
-          <a class="btn btn--sage" href="{{ whatsapp_url() }}" target="_blank" rel="noopener"><x-ico name="whatsapp" />{{ __('shop.whatsapp.chat') }}</a>
+          <a class="btn btn--walnut" href="{{ $store['instagram_url'] }}" target="_blank" rel="noopener noreferrer"><x-ico name="instagram" />{{ __('shop.home.ig_follow') }}</a>
+          <a class="btn btn--sage" href="{{ whatsapp_url() }}" target="_blank" rel="noopener noreferrer"><x-ico name="whatsapp" />{{ __('shop.whatsapp.chat') }}</a>
         </div>
         <p class="ig__phone" dir="ltr"><x-ico name="phone" />{{ $store['whatsapp'] }}</p>
       </div>
       <ul class="ig__grid">
         @foreach (range(1, 6) as $number)
-          <li><a href="{{ $store['instagram_url'] }}" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true">
+          <li><a href="{{ $store['instagram_url'] }}" target="_blank" rel="noopener noreferrer" tabindex="-1" aria-hidden="true">
             <img src="{{ asset("assets/img/demo/ig-{$number}.webp") }}" alt="" width="480" height="480" loading="lazy" decoding="async"></a></li>
         @endforeach
       </ul>

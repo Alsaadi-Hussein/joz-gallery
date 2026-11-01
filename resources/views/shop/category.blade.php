@@ -2,7 +2,9 @@
 
 @php
     $name = $category->localized('name');
-    $sortFields = collect(request()->only(['color', 'material', 'min', 'max']));
+    // From the checked filters, not the raw query string, which can hold nested arrays.
+    $sortFields = collect(['color' => $filters->colors, 'material' => $filters->materials, 'min' => $filters->min, 'max' => $filters->max])
+        ->reject(fn (mixed $value) => $value === null || $value === []);
 @endphp
 
 @section('title', $name.' | '.__('shop.meta.title_suffix'))

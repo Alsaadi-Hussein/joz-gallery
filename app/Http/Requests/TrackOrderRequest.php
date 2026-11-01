@@ -2,11 +2,14 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\DropsArrayFields;
 use App\Support\Phone;
 use Illuminate\Foundation\Http\FormRequest;
 
 class TrackOrderRequest extends FormRequest
 {
+    use DropsArrayFields;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -17,6 +20,8 @@ class TrackOrderRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $this->dropArrayFields();
+
         $this->merge([
             'number' => mb_strtoupper(trim($this->string('number')->toString())),
             'phone' => Phone::normalize($this->string('phone')->toString()),

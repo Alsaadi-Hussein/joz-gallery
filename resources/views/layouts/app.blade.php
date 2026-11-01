@@ -64,7 +64,7 @@
   @include('partials.cart')
   @include('partials.tabbar')
 
-  <a class="wa-float" href="{{ whatsapp_url() }}" target="_blank" rel="noopener" aria-label="{{ __('shop.whatsapp.chat') }}"><x-ico name="whatsapp" /></a>
+  <a class="wa-float" href="{{ whatsapp_url() }}" target="_blank" rel="noopener noreferrer" aria-label="{{ __('shop.whatsapp.chat') }}"><x-ico name="whatsapp" /></a>
 
   <div class="toast" role="status" aria-live="polite" data-toast hidden></div>
 

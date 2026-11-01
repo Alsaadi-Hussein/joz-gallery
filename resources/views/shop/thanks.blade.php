@@ -23,7 +23,7 @@
     </div>
 
     <div class="order-result__actions">
-      <a class="btn btn--sage btn--block" href="{{ whatsapp_url(\App\Support\OrderSummary::whatsapp($order)) }}" target="_blank" rel="noopener"><x-ico name="whatsapp" />{{ __('shop.thanks.whatsapp') }}</a>
+      <a class="btn btn--sage btn--block" href="{{ whatsapp_url(\App\Support\OrderSummary::whatsapp($order)) }}" target="_blank" rel="noopener noreferrer"><x-ico name="whatsapp" />{{ __('shop.thanks.whatsapp') }}</a>
       <a class="btn btn--ghost btn--block" href="{{ shop_route('track') }}">{{ __('shop.thanks.track') }}</a>
     </div>
   </div>

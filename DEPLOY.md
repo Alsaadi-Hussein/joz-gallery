@@ -393,8 +393,18 @@ bash scripts/monitor.sh --report
 
 ### نسيت كلمة مرور المالك
 
+اكتب كلمة المرور الجديدة بعد هذا الأمر ثم اضغط Enter. لن تظهر على الشاشة ولن تُحفظ في سجل الأوامر:
+
 ```bash
-php artisan tinker --execute="App\Models\User::where('email', 'you@example.com')->first()->update(['password' => 'New-Str0ng_Password!']);"
+read -rs NEW_PASSWORD
+```
+
+```bash
+NEW_PASSWORD="$NEW_PASSWORD" php artisan tinker --execute="App\Models\User::where('email', 'you@example.com')->first()->update(['password' => getenv('NEW_PASSWORD')]);"
+```
+
+```bash
+unset NEW_PASSWORD
 ```
 
 ---
@@ -448,6 +458,7 @@ php artisan tinker --execute="App\Models\User::where('email', 'you@example.com')
 | لوحة التحكم بلا تنسيق | `php artisan filament:assets` ثم `php artisan optimize` |
 | لا تصل الإشعارات | افتح `/api/health` مع التوكن وتأكد أن `scheduler.ok` يساوي `true`، ثم راجع سطر cron ومعرّف تيليغرام و`storage/logs/` |
 | صور أو خطوط لا تظهر، وخطأ Content Security Policy في Console | أضف مصدرها في `app/Http/Middleware/SecurityHeaders.php` |
+| توقف النشر برسالة Set APP_URL أو Set MAIL_FROM_ADDRESS | ضع العنوان الحقيقي في `.env` بدل القيمة الفارغة أو `example.com` |
 | توقف النشر برسالة Another deployment is running | تأكد أن لا نشر آخر يعمل، ثم احذف المجلد `storage/framework/deploy.lock` |
 | تعديل `.env` لا يؤثر | نفّذ `php artisan optimize` بعد كل تعديل، لأن الإعدادات محفوظة في ذاكرة مؤقتة |
 | تعذر الدخول إلى لوحة التحكم عبر http | `SESSION_SECURE_COOKIE=true` يتطلب https، ففعّل SSL أولاً |

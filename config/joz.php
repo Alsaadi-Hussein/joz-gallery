@@ -22,12 +22,13 @@ return [
     | Demo catalog
     |--------------------------------------------------------------------------
     |
-    | Seeds the demo's categories, products, offers and banners. Set SEED_DEMO to
-    | false on the live site once the real catalog is in place.
+    | Seeds the demo's categories, products, offers, banners and its working JOZ10
+    | coupon. Off unless SEED_DEMO asks for it, so a setting forgotten on the live
+    | site can never fill the store with demo data.
     |
     */
 
-    'seed_demo' => (bool) env('SEED_DEMO', true),
+    'seed_demo' => (bool) env('SEED_DEMO', false),
 
     /*
     |--------------------------------------------------------------------------

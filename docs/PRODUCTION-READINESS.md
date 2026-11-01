@@ -1,6 +1,6 @@
 # Joz Gallery: production readiness report
 
-Audit date: 2026-11-01. Everything marked measured or tested was run, on a local bench unless it says otherwise. Nothing has been deployed to a real cPanel host yet.
+Audit date: 2026-11-01, with a follow-up security audit on 2026-11-02 (see the end of this report). Everything marked measured or tested was run, on a local bench unless it says otherwise. Nothing has been deployed to a real cPanel host yet.
 
 ## Verdict
 
@@ -147,7 +147,7 @@ All findings below are fixed and have regression tests, unless marked otherwise.
 | `storage/app/public/.htaccess` | No scripts, sandboxed uploads | Included in the 80 checks |
 | `public/.user.ini` | PHP limits where the host uses PHP-FPM | Not tested |
 | `.cpanel.yml` | The "Deploy HEAD Commit" button | Not tested: needs real cPanel |
-| `scripts/deploy.sh` | The deployment itself | 29 checks on a real run |
+| `scripts/deploy.sh` | The deployment itself | 32 checks on a real run |
 
 Compression took the home page from 61 KB to 9 KB with gzip and 8 KB with Brotli.
 
@@ -156,7 +156,7 @@ Compression took the home page from 61 KB to 9 KB with gzip and 8 KB with Brotli
 - **"Compile assets" is skipped.** The host has no Node.js, so `public/build` is built on your computer and committed. The script stops if it is missing.
 - **"Reload processes" is not needed.** There are no workers to restart. Cron starts a fresh queue run every minute, and the script still signals `queue:restart`.
 
-**`deploy.sh` was tested** on a real clone with a real Composer install, database backup and migrations. It never touches `.env` or `storage/`, removes files deleted from Git, and brings the site back up after a failed migration. It refuses `APP_DEBUG=true`, a second deployment running at once, and a missing `.env`.
+**`deploy.sh` was tested** on a real clone with a real Composer install, database backup and migrations. It never touches `.env` or `storage/`, removes files deleted from Git, and brings the site back up after a failed migration. It refuses `APP_DEBUG=true`, a placeholder or empty `APP_URL` or `MAIL_FROM_ADDRESS`, a second deployment running at once, and a missing `.env`.
 
 ---
 
@@ -176,7 +176,7 @@ It was tested against real failures: it caught a real `.env` exposed in the web 
 
 ### Run on your computer
 
-Automated tests, expect 598 passed:
+Automated tests, expect 636 passed:
 
 ```bash
 php artisan test --compact
@@ -290,14 +290,14 @@ bash scripts/monitor.sh --report
 
 **Done and verified**
 
-- [x] 598 automated tests pass, 1,839 assertions
+- [x] 636 automated tests pass, 1,889 assertions
 - [x] Dependency scans and secret scan clean
 - [x] Every finding fixed, with a regression test
 - [x] Concurrent checkouts: 0 of 108 fail, all numbers unique
 - [x] Failure rate under 1% up to 600 users on the bench
 - [x] p95 under 500 ms up to 200 users on 8 workers, and 50 users on 2 cores
 - [x] 80 Apache checks pass under cPanel-style limits
-- [x] 29 deployment checks pass on a real run
+- [x] 32 deployment checks pass on a real run
 - [x] Health endpoint and monitor proven against real failures
 - [x] CSP clean on 15 page types in a real browser, with a real image upload
 
@@ -321,7 +321,43 @@ bash scripts/monitor.sh --report
 - [ ] Commit, and add a private Git remote
 - [ ] Off-site backups, then test one restore
 - [ ] Real products, delivery fees and page text
+- [ ] Real wording for the About, Contact, Delivery, Returns and Privacy pages
+- [ ] Confirm the store phone, WhatsApp number and Instagram in Settings
 - [ ] Remove the demo `JOZ10` coupon if demo data is loaded
 - [ ] Decide on two-factor login and who may export orders
 
 **Is it 100% ready for production? No.** It is ready for staging today. Move to production once the "cannot be verified" list passes on the real host.
+
+---
+
+## Follow-up security audit, 2026-11-02
+
+**Result: 0 critical issues and no exposed secrets.** A scan of 327 tracked files and all of Git history found no credentials, and the browser bundle holds no environment values or source maps. The readiness score stays at 72%, because the open items are still host and content work.
+
+The first audit missed the crash below, because it never sent array-shaped input or followed the redirect afterwards. These were all fixed, and each has a test unless it says otherwise.
+
+| Severity | Finding | Fix |
+|---|---|---|
+| Warning | 14 kinds of malformed request crashed with a 500 error. A crafted field such as `name[]=x` also crashed the form page that came back | Arrays are treated as empty fields, and category filters come from the checked values. 22 hostile requests on the bench: 0 server errors |
+| Warning | `SEED_DEMO` defaulted to on, which could add demo data and the working `JOZ10` coupon | Off unless asked for |
+| Warning | `.gitignore` allowed database dumps, keys and archives | Now ignored |
+| Warning | `/api/health` allowed any website to read it, which is Laravel's default | `config/cors.php` allows no site |
+| Warning | Customer details stayed in the browser for ever | Removed after 30 days. Checked in a real browser, not by an automated test |
+| Warning | Home page text implied stock photos were customers' homes, and claimed best sellers before any sales | Reworded in both languages |
+| Cleanup | 14 external links had no `noreferrer` | Added |
+| Cleanup | 107 optional settings were missing from `.env.example` | Added, commented out |
+| Cleanup | Cart HTML printed server integers unescaped. Not exploitable | Escaped |
+| Cleanup | `DEPLOY.md` printed a literal example password | Replaced with a hidden prompt |
+| Cleanup | Placeholder addresses could reach production | `deploy.sh` refuses them |
+| Cleanup | `07701234567` could be a real person's number | Shown as `07XX XXX XXXX` |
+| Cleanup | The README was Laravel's default | Replaced |
+
+**Stored XSS:** an order with script payloads in every field stayed escaped on the thanks page, tracking page, invoice and order email. In a real browser, an order with a script in its notes placed cleanly with no console errors. The admin order screens were not rendered in this test, but their code has no raw HTML output.
+
+**Still open, and yours to supply:**
+
+- The wording for the 5 public pages, which still show placeholder text. See `database/seeders/PageSeeder.php`.
+- The real delivery fees. `database/seeders/GovernorateSeeder.php` seeds 5,000 and 8,000 dinars as placeholders.
+- Real product text and photos to replace the demo content, including `public/assets/img/demo/`.
+- Whether the seeded store phone, WhatsApp number and Instagram are correct.
+- Whether to keep `AGENTS.md` and `CLAUDE.md`.

@@ -27,6 +27,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -286,6 +287,134 @@ describe('image uploads', function () {
     });
 });
 
+describe('malformed requests', function () {
+    beforeEach(function () {
+        RateLimiter::clear('checkout');
+        Governorate::factory()->create(['is_active' => true]);
+    });
+
+    it('never crash a listing, whatever the query string holds', function (string $query) {
+        $category = Category::factory()->create(['slug' => 'sofas']);
+        Product::factory()->for($category)->create();
+
+        $this->get("/category/sofas?{$query}")->assertOk();
+    })->with([
+        'nested color' => ['color[][]=x'],
+        'nested material' => ['material[][]=x'],
+        'named color' => ['color[a][b]=x'],
+        'array price' => ['min[]=1&max[][]=2'],
+    ]);
+
+    it('are refused politely by order tracking', function (array $fields) {
+        $this->followingRedirects()->from('/track')->post('/track', $fields)->assertOk();
+    })->with([
+        'number' => [['number' => ['a'], 'phone' => '07701234567']],
+        'phone' => [['number' => 'JG-26-0001', 'phone' => ['x' => 'a']]],
+        'nested' => [['number' => [['a']], 'phone' => [['b']]]],
+    ]);
+
+    it('are refused politely by the checkout, on the page that comes back too', function (string $field) {
+        $this->followingRedirects()
+            ->from('/checkout')
+            ->post('/checkout', ['cart' => '[]', $field => ['crafted']])
+            ->assertOk();
+    })->with(['name', 'phone', 'governorate_id', 'area', 'landmark', 'notes', 'coupon', 'cart', 'website']);
+});
+
+describe('the demo catalog', function () {
+    it('stays out unless someone asks for it', function () {
+        expect(file_get_contents(config_path('joz.php')))->toContain("env('SEED_DEMO', false)");
+    });
+});
+
+describe('other websites', function () {
+    it('cannot read the health check', function () {
+        $this->getJson('/api/health', ['Origin' => 'https://evil.example'])
+            ->assertOk()
+            ->assertHeaderMissing('Access-Control-Allow-Origin');
+    });
+
+    it('get no answer to a cross-site preflight', function () {
+        $this->call('OPTIONS', '/api/health', server: [
+            'HTTP_ORIGIN' => 'https://evil.example',
+            'HTTP_ACCESS_CONTROL_REQUEST_METHOD' => 'GET',
+            'HTTP_ACCESS_CONTROL_REQUEST_HEADERS' => 'x-health-token',
+        ])->assertHeaderMissing('Access-Control-Allow-Origin');
+    });
+});
+
+describe('external links', function () {
+    it('never pass on where the visitor came from', function () {
+        $unsafe = collect(File::allFiles(resource_path('views')))
+            ->flatMap(fn ($file) => collect(explode("\n", $file->getContents()))
+                ->filter(fn (string $line) => str_contains($line, 'target="_blank"') && ! str_contains($line, 'rel="noopener noreferrer"'))
+                ->map(fn (string $line) => $file->getFilename()));
+
+        expect($unsafe->all())->toBe([]);
+    });
+});
+
+describe('the words on the home page', function () {
+    it('make no claim the store cannot back up yet', function (string $locale) {
+        $home = trans('shop.home', [], $locale);
+
+        expect($home['ig_title'])->not->toContain('بيوت')->not->toContain('homes')
+            ->and($home['best_sub'])->not->toContain('عملاؤنا')->not->toContain('customers');
+    })->with(['ar', 'en']);
+
+    it('use an example phone number that cannot be anybody\'s', function (string $locale) {
+        $checkout = trans('shop.checkout', [], $locale);
+
+        expect($checkout['phone_hint'])->not->toMatch('/07\d{9}/')
+            ->and($checkout['phone_invalid'])->not->toMatch('/07\d{9}/');
+    })->with(['ar', 'en']);
+});
+
+describe('the shipped browser code', function () {
+    function builtScript(): string
+    {
+        $manifest = json_decode(file_get_contents(public_path('build/manifest.json')), true);
+
+        return file_get_contents(public_path('build/'.$manifest['resources/js/app.js']['file']));
+    }
+
+    it('forgets saved delivery details', function () {
+        expect(file_get_contents(resource_path('js/app.js')))->toContain('CUSTOMER_DAYS = 30');
+        expect(builtScript())->toContain('saved_at');
+    });
+});
+
+describe('the settings template', function () {
+    beforeEach(function () {
+        $this->example = file_get_contents(base_path('.env.example'));
+    });
+
+    it('lists every setting the project reads', function () {
+        $used = collect([...File::allFiles(config_path()), ...File::allFiles(app_path())])
+            ->flatMap(fn ($file) => str($file->getContents())->matchAll("/\benv\(\s*'([A-Z][A-Z0-9_]*)'/"))
+            ->unique();
+
+        expect($used->reject(fn (string $name) => preg_match("/^#? ?{$name}=/m", $this->example) === 1)->values()->all())->toBe([]);
+    });
+
+    it('leaves optional settings commented out', function () {
+        $optional = str($this->example)->after('# Optional settings')->explode("\n")->filter()->values();
+
+        expect($optional->count())->toBeGreaterThan(100)
+            ->and($optional->every(fn (string $line) => str_starts_with($line, '#')))->toBeTrue();
+    });
+});
+
+describe('the docs', function () {
+    it('never print a password that could be pasted as it is', function () {
+        expect(file_get_contents(base_path('DEPLOY.md')))->not->toContain('Str0ng');
+    });
+
+    it('describe this project, not the framework', function () {
+        expect(file_get_contents(base_path('README.md')))->toContain('Joz Gallery')->not->toContain('laravel.com/img');
+    });
+});
+
 describe('rate limits', function () {
     it('count each feature on its own, so searching never blocks tracking an order', function () {
         foreach (range(1, 12) as $keystroke) {
@@ -486,6 +615,10 @@ describe('settings files', function () {
 
         expect($ignored)->toMatch('/^\.env\.\*$/m')->toMatch('/^!\.env\.example$/m');
     });
+
+    it('sit beside dumps, keys and archives that git must never take', function (string $pattern) {
+        expect(file_get_contents(base_path('.gitignore')))->toMatch('/^'.preg_quote($pattern, '/').'$/m');
+    })->with(['*.sql', '*.sql.gz', '*.zip', '*.pem', '*.key', 'staging-latency.csv', 'desktop.ini', '/.claude', '/.mcp.json']);
 });
 
 describe('old cache files', function () {

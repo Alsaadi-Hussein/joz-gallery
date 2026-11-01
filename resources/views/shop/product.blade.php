@@ -89,7 +89,7 @@
         <button class="btn btn--walnut btn--block" type="button" data-add="{{ $product->id }}" data-variant="{{ $selected['id'] ?? '' }}" data-name="{{ $name }}" @disabled(! $inStock)>
           <x-ico name="bag" /><span>{{ $inStock ? __('shop.cart.add') : __('shop.product.sold_out') }}</span>
         </button>
-        <a class="btn btn--sage btn--block" href="{{ whatsapp_url(__('shop.whatsapp.ask_product', ['name' => $name])."\n".shop_route('product', $product)) }}" target="_blank" rel="noopener">
+        <a class="btn btn--sage btn--block" href="{{ whatsapp_url(__('shop.whatsapp.ask_product', ['name' => $name])."\n".shop_route('product', $product)) }}" target="_blank" rel="noopener noreferrer">
           <x-ico name="whatsapp" />{{ __('shop.product.ask') }}
         </a>
       </div>

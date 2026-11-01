@@ -33,11 +33,11 @@
       <ul class="contact-list">
         <li>
           <x-ico name="phone" />
-          <span><small>{{ __('shop.footer.phone_whatsapp') }}</small><a href="{{ whatsapp_url() }}" target="_blank" rel="noopener" dir="ltr">{{ $store['whatsapp'] }}</a></span>
+          <span><small>{{ __('shop.footer.phone_whatsapp') }}</small><a href="{{ whatsapp_url() }}" target="_blank" rel="noopener noreferrer" dir="ltr">{{ $store['whatsapp'] }}</a></span>
         </li>
         <li>
           <x-ico name="instagram" />
-          <span><small>Instagram</small><a href="{{ $store['instagram_url'] }}" target="_blank" rel="noopener" dir="ltr">{{ '@'.$store['instagram'] }}</a></span>
+          <span><small>Instagram</small><a href="{{ $store['instagram_url'] }}" target="_blank" rel="noopener noreferrer" dir="ltr">{{ '@'.$store['instagram'] }}</a></span>
         </li>
         @if ($store['address'])
           <li><x-ico name="pin" /><span>{{ $store['address'] }}</span></li>
@@ -50,8 +50,8 @@
   <div class="wrap site-footer__bottom">
     <p>{{ __('shop.footer.rights', ['year' => now()->year]) }}</p>
     <div class="site-footer__social">
-      <a class="icon-btn" href="{{ $store['instagram_url'] }}" target="_blank" rel="noopener" aria-label="Instagram"><x-ico name="instagram" /></a>
-      <a class="icon-btn" href="{{ whatsapp_url() }}" target="_blank" rel="noopener" aria-label="WhatsApp"><x-ico name="whatsapp" /></a>
+      <a class="icon-btn" href="{{ $store['instagram_url'] }}" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><x-ico name="instagram" /></a>
+      <a class="icon-btn" href="{{ whatsapp_url() }}" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"><x-ico name="whatsapp" /></a>
     </div>
   </div>
 </footer>

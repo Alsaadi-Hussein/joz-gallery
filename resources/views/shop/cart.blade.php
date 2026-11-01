@@ -24,7 +24,7 @@
       <div class="cart-total"><span>{{ __('shop.cart.subtotal') }}</span><strong data-cart-subtotal></strong></div>
       <p class="muted small">{{ __('shop.cart.delivery_note') }}</p>
       <a class="btn btn--walnut btn--block" href="{{ shop_route('checkout') }}">{{ __('shop.cart.checkout') }}<x-ico name="arrow" class="ico-dir" /></a>
-      <a class="btn btn--sage btn--block" href="{{ whatsapp_url() }}" target="_blank" rel="noopener" data-cart-whatsapp><x-ico name="whatsapp" />{{ __('shop.whatsapp.order') }}</a>
+      <a class="btn btn--sage btn--block" href="{{ whatsapp_url() }}" target="_blank" rel="noopener noreferrer" data-cart-whatsapp><x-ico name="whatsapp" />{{ __('shop.whatsapp.order') }}</a>
     </aside>
   </div>
 </main>
