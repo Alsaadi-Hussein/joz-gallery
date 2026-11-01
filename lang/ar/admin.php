@@ -20,6 +20,7 @@ return [
         'category' => 'القسم',
         'image' => 'الصورة',
         'image_types' => 'يُسمح فقط بصور JPG وPNG وWEBP.',
+        'image_dimensions' => 'الصورة كبيرة جداً. أقصى حجم مسموح :size × :size بكسل.',
         'currency' => 'د.ع',
         'cm' => 'سم',
     ],

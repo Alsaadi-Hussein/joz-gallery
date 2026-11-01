@@ -9,3 +9,12 @@ Options -Indexes
 <IfModule mod_php.c>
     php_flag engine off
 </IfModule>
+
+# A picture needs none of these, and they stop a disguised page from acting like one.
+# Inside FilesMatch, or the FilesMatch in public/.htaccess replaces them.
+<IfModule mod_headers.c>
+    <FilesMatch ".">
+        Header set X-Content-Type-Options "nosniff"
+        Header set Content-Security-Policy "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox"
+    </FilesMatch>
+</IfModule>

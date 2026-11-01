@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Categories\Schemas;
 
+use App\Filament\Support\ImageUpload;
 use App\Models\Category;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
@@ -55,15 +56,10 @@ class CategoryForm
                     )
                     ->searchable()
                     ->preload(),
-                SpatieMediaLibraryFileUpload::make('image')
+                ImageUpload::configure(SpatieMediaLibraryFileUpload::make('image'))
                     ->label(__('admin.common.image'))
                     ->collection('image')
-                    ->conversion('thumb')
-                    ->image()
-                    ->imageEditor()
-                    ->maxSize(5120)
-                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-                    ->validationMessages(['mimetypes' => __('admin.common.image_types')]),
+                    ->conversion('thumb'),
                 Toggle::make('is_active')
                     ->label(__('admin.common.is_active'))
                     ->default(true),

@@ -33,7 +33,8 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Backups and customer exports live here, so no route may ever serve this disk.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Products\Schemas;
 
+use App\Filament\Support\ImageUpload;
 use App\Models\Product;
 use App\Services\PriceService;
 use App\Support\Money;
@@ -122,7 +123,7 @@ class ProductForm
     {
         return Tab::make(__('admin.product.tabs.images'))
             ->schema([
-                SpatieMediaLibraryFileUpload::make('gallery')
+                ImageUpload::configure(SpatieMediaLibraryFileUpload::make('gallery'))
                     ->label(__('admin.product.gallery'))
                     ->helperText(__('admin.product.gallery_hint'))
                     ->collection('gallery')
@@ -130,12 +131,7 @@ class ProductForm
                     ->multiple()
                     ->reorderable()
                     ->appendFiles()
-                    ->image()
-                    ->imageEditor()
                     ->maxFiles(10)
-                    ->maxSize(5120)
-                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-                    ->validationMessages(['mimetypes' => __('admin.common.image_types')])
                     ->panelLayout('grid')
                     ->required(),
             ]);

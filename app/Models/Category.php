@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -67,13 +68,15 @@ class Category extends Model implements HasMedia
     }
 
     /**
-     * Ids of every category below this one, used to keep the parent picker free of loops.
+     * Ids of every category below this one, used to keep the parent picker free of
+     * loops. Pass the parent map in when calling this for several categories.
      *
+     * @param  Collection<int, int|null>|null  $parents
      * @return list<int>
      */
-    public function descendantIds(): array
+    public function descendantIds(?Collection $parents = null): array
     {
-        $parents = Category::query()->pluck('parent_id', 'id');
+        $parents ??= Category::query()->pluck('parent_id', 'id');
         $found = [];
         $frontier = [$this->id];
 

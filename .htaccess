@@ -1,0 +1,7 @@
+# The site is served from public/. This file only acts if the document root is ever
+# set to this folder by mistake, when it stops .env and the code being downloaded.
+# public/.htaccess turns on its own rules, so these never apply to the live site.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^ - [R=404,L]
+</IfModule>

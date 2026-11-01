@@ -1,0 +1,8 @@
+# Run by cPanel's Git Version Control when you press "Deploy HEAD Commit".
+# cPanel refuses to deploy unless this file is committed and the repository is clean.
+# The live site is in ~/joz. Change the folder here if yours is different.
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH="$HOME/joz"
+    - /bin/bash scripts/deploy.sh "$DEPLOYPATH"

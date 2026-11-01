@@ -2,6 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\Category;
+use App\Models\Offer;
+use App\Models\Product;
+use App\Models\ProductVariant;
+use App\Services\CatalogCache;
 use App\Services\PriceService;
 use App\View\Composers\StorefrontComposer;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -40,6 +45,11 @@ class AppServiceProvider extends ServiceProvider
 
         // Bound to the pages, not the layout: a page renders first and passes its data up.
         View::composer(['shop.*', 'errors::404', 'errors::429'], StorefrontComposer::class);
+
+        foreach ([Product::class, ProductVariant::class, Category::class, Offer::class] as $model) {
+            $model::saved(CatalogCache::flush(...));
+            $model::deleted(CatalogCache::flush(...));
+        }
 
         RateLimiter::for('checkout', fn (Request $request) => Limit::perMinute(self::CHECKOUTS_PER_MINUTE)->by($request->ip()));
     }

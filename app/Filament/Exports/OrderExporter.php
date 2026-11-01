@@ -5,11 +5,16 @@ namespace App\Filament\Exports;
 use App\Enums\OrderStatus;
 use App\Models\Order;
 use App\Support\OrderSummary;
+use App\Support\SpreadsheetText;
+use Filament\Actions\Exports\Downloaders\Contracts\Downloader;
+use Filament\Actions\Exports\Downloaders\XlsxDownloader;
+use Filament\Actions\Exports\Enums\Contracts\ExportFormat as ExportFormatInterface;
 use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Actions\Exports\ExportColumn;
 use Filament\Actions\Exports\Exporter;
 use Filament\Actions\Exports\Models\Export;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
 class OrderExporter extends Exporter
@@ -48,14 +53,30 @@ class OrderExporter extends Exporter
     }
 
     /**
-     * Excel only. A CSV opened in Excel would run a formula typed into a checkout
-     * field, such as a name starting with "=".
+     * Strangers fill in the checkout and staff open this file in Excel, where a name
+     * starting with "=" would otherwise run as a formula.
      *
+     * @return array<mixed>
+     */
+    public function __invoke(Model $record): array
+    {
+        return array_map(SpreadsheetText::escape(...), parent::__invoke($record));
+    }
+
+    /**
      * @return array<ExportFormat>
      */
     public function getFormats(): array
     {
         return [ExportFormat::Xlsx];
+    }
+
+    /**
+     * getFormats() only hides the choice: the download link still takes ?format=csv.
+     */
+    public static function getDownloader(ExportFormatInterface $format): Downloader
+    {
+        return new XlsxDownloader;
     }
 
     /**

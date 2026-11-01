@@ -11,6 +11,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Testing\TestResponse;
@@ -125,7 +126,7 @@ describe('order numbers', function () {
 
     it('counts up', function () {
         Carbon::setTestNow('2026-11-02 10:00:00');
-        Order::factory()->create(['number' => 'JG-26-0041']);
+        DB::table('order_sequences')->insert(['year' => '26', 'last_number' => 41]);
 
         placeOrder();
 
@@ -134,7 +135,7 @@ describe('order numbers', function () {
 
     it('starts again each year', function () {
         Carbon::setTestNow('2027-01-01 09:00:00');
-        Order::factory()->create(['number' => 'JG-26-0999']);
+        DB::table('order_sequences')->insert(['year' => '26', 'last_number' => 999]);
 
         placeOrder();
 
@@ -143,7 +144,7 @@ describe('order numbers', function () {
 
     it('keeps counting past 9999', function () {
         Carbon::setTestNow('2026-11-02 10:00:00');
-        Order::factory()->create(['number' => 'JG-26-9999']);
+        DB::table('order_sequences')->insert(['year' => '26', 'last_number' => 9999]);
 
         placeOrder();
 

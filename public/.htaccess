@@ -1,9 +1,36 @@
-<IfModule mod_rewrite.c>
-    <IfModule mod_negotiation.c>
-        Options -MultiViews -Indexes
-    </IfModule>
+# Joz Gallery on cPanel. Tested on Apache 2.4. PHP pages set their own security
+# headers in app/Http/Middleware/SecurityHeaders.php, including the Content
+# Security Policy, so the headers here only cover files Apache serves itself.
+# Setting them for PHP pages too would send every header twice.
+#
+# Never add FollowSymLinks to Options: cPanel forbids it in this file, and the whole
+# site would answer 500. Its default SymLinksIfOwnerMatch is what public/storage needs.
 
+Options -Indexes -MultiViews
+
+<IfModule mod_rewrite.c>
     RewriteEngine On
+
+    # Force https. .well-known stays reachable over http, because AutoSSL proves
+    # ownership there and the certificate would otherwise fail to renew. Local
+    # addresses are left alone so the same file works on a test machine.
+    RewriteCond %{REQUEST_URI} !^/\.well-known/
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+    RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)(:[0-9]+)?$ [NC]
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Hidden files and folders such as .env and .git. 404, not 403, so that nobody
+    # can tell which ones exist. Only .well-known stays open.
+    RewriteRule (^|/)\.(?!well-known(/|$)) - [R=404,L]
+
+    # Project files, in case the host puts them under the web root.
+    RewriteRule ^(app|bootstrap|config|database|lang|node_modules|resources|routes|scripts|tests|vendor)(/|$) - [R=404,L,NC]
+    RewriteRule ^storage/(app|framework|logs)(/|$) - [R=404,L,NC]
+    RewriteRule (^|/)(artisan|composer\.(json|lock)|package(-lock)?\.json|phpunit\.xml|vite\.config\.js|error_log|php\.ini|REVISION|DEPLOY\.md|README\.md|AGENTS\.md|CLAUDE\.md)$ - [R=404,L,NC]
+
+    # Backups, dumps and settings left behind by mistake.
+    RewriteRule \.(bak|backup|conf|dist|env|ini|lock|log|old|orig|save|sh|sql|sqlite|swp|tar|tgz|gz|yaml|yml|zip|7z|rar)$ - [R=404,L,NC]
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
@@ -22,4 +49,53 @@
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
+</IfModule>
+
+# Compression. Brotli first where the host has it, then gzip. Each one steps aside
+# when the other has already compressed the response. Images are compressed already.
+<IfModule mod_filter.c>
+    <IfModule mod_brotli.c>
+        AddOutputFilterByType BROTLI_COMPRESS text/html text/plain text/css text/xml text/javascript application/javascript application/json application/xml application/manifest+json image/svg+xml font/ttf font/otf
+    </IfModule>
+    <IfModule mod_deflate.c>
+        AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml text/javascript application/javascript application/json application/xml application/manifest+json image/svg+xml font/ttf font/otf
+    </IfModule>
+</IfModule>
+
+# How long browsers keep files.
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresDefault "access plus 0 seconds"
+    ExpiresByType image/webp "access plus 30 days"
+    ExpiresByType image/avif "access plus 30 days"
+    ExpiresByType image/jpeg "access plus 30 days"
+    ExpiresByType image/png "access plus 30 days"
+    ExpiresByType image/gif "access plus 30 days"
+    ExpiresByType image/svg+xml "access plus 30 days"
+    ExpiresByType image/x-icon "access plus 30 days"
+    ExpiresByType image/vnd.microsoft.icon "access plus 30 days"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/ttf "access plus 1 year"
+    ExpiresByType text/css "access plus 7 days"
+    ExpiresByType text/javascript "access plus 7 days"
+    ExpiresByType application/javascript "access plus 7 days"
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header always unset X-Powered-By
+
+    # Vite puts a hash of the contents in these names, so they can be kept for good.
+    <IfModule mod_setenvif.c>
+        SetEnvIf Request_URI "^/build/assets/" JOZ_HASHED_FILE
+        Header set Cache-Control "public, max-age=31536000, immutable" env=JOZ_HASHED_FILE
+    </IfModule>
+
+    <FilesMatch "\.(?i:css|js|mjs|map|json|xml|txt|html?|ico|gif|jpe?g|png|webp|avif|svg|ttf|otf|woff2?)$">
+        Header set X-Content-Type-Options "nosniff"
+        Header set X-Frame-Options "SAMEORIGIN"
+        Header set Referrer-Policy "strict-origin-when-cross-origin"
+        Header set Content-Security-Policy "default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'"
+        Header set Strict-Transport-Security "max-age=31536000" "expr=%{HTTPS} == 'on'"
+    </FilesMatch>
 </IfModule>

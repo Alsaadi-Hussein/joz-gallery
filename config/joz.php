@@ -43,4 +43,17 @@ return [
 
     'trusted_proxies' => env('TRUSTED_PROXIES'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Health check
+    |--------------------------------------------------------------------------
+    |
+    | A monitor sending this in the X-Health-Token header gets the full figures
+    | from /api/health. Everyone else only gets ok or down. Leave it empty to
+    | keep the figures private from everybody.
+    |
+    */
+
+    'health_token' => env('HEALTH_TOKEN'),
+
 ];

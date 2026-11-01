@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Support\InitialAvatar;
 use App\Http\Controllers\Admin\InvoiceController;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -51,6 +52,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogoHeight('3rem')
             ->favicon(fn (): string => asset('assets/img/brand/favicon.png'))
             ->font('Tajawal')
+            ->defaultAvatarProvider(InitialAvatar::class)
             ->darkMode(false)
             ->colors([
                 'primary' => self::WALNUT,

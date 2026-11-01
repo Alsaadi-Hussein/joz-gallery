@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Banners;
 use App\Filament\Resources\Banners\Pages\CreateBanner;
 use App\Filament\Resources\Banners\Pages\EditBanner;
 use App\Filament\Resources\Banners\Pages\ListBanners;
+use App\Filament\Support\ImageUpload;
 use App\Models\Banner;
 use BackedEnum;
 use Filament\Actions\DeleteAction;
@@ -88,14 +89,9 @@ class BannerResource extends Resource
 
     private static function imageUpload(string $collection): SpatieMediaLibraryFileUpload
     {
-        return SpatieMediaLibraryFileUpload::make($collection)
+        return ImageUpload::configure(SpatieMediaLibraryFileUpload::make($collection))
             ->collection($collection)
-            ->conversion('large')
-            ->image()
-            ->imageEditor()
-            ->maxSize(5120)
-            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-            ->validationMessages(['mimetypes' => __('admin.common.image_types')]);
+            ->conversion('large');
     }
 
     public static function table(Table $table): Table

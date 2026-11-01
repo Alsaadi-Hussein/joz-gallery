@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\OrderStatus;
 use App\Filament\Resources\Categories\CategoryResource;
 use App\Filament\Resources\Governorates\GovernorateResource;
 use App\Filament\Resources\Products\ProductResource;
@@ -115,5 +116,6 @@ it('lets staff work on orders but not delete them', function () {
         ->and($staff->can('update', $order))->toBeTrue()
         ->and($staff->can('delete', $order))->toBeFalse()
         ->and($staff->can('deleteAny', Order::class))->toBeFalse()
-        ->and(owner()->can('delete', $order))->toBeTrue();
+        ->and(owner()->can('delete', $order))->toBeFalse()
+        ->and(owner()->can('delete', Order::factory()->create(['status' => OrderStatus::Cancelled])))->toBeTrue();
 });

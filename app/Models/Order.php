@@ -11,7 +11,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Str;
 use LogicException;
 
 #[Fillable([
@@ -40,22 +39,25 @@ class Order extends Model
     }
 
     /**
-     * The next JG-YY-#### for this year. The lock on the latest order makes two
-     * checkouts take turns, so they can never get the same number.
+     * The next JG-YY-#### for this year. Call it first in the transaction: its row
+     * lock makes checkouts take turns, and MariaDB refuses to lock a row that changed
+     * after the transaction's first plain read. Counting in a separate table also
+     * means a deleted order's number is never reused, because an old signed link
+     * would then open another customer's order.
      */
     public static function nextNumber(): string
     {
-        $prefix = 'JG-'.now()->format('y').'-';
+        $year = now()->format('y');
 
-        $last = static::query()
-            ->where('number', 'like', $prefix.'%')
-            ->orderByDesc('id')
-            ->lockForUpdate()
-            ->first(['id', 'number']);
+        DB::table('order_sequences')->upsert(
+            ['year' => $year, 'last_number' => 1],
+            ['year'],
+            ['last_number' => DB::raw('last_number + 1')],
+        );
 
-        $sequence = $last ? (int) Str::afterLast($last->number, '-') + 1 : 1;
+        $sequence = DB::table('order_sequences')->where('year', $year)->lockForUpdate()->value('last_number');
 
-        return $prefix.str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
+        return "JG-{$year}-".str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
     }
 
     /**

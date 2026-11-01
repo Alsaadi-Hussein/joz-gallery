@@ -26,6 +26,7 @@ class Catalog
     public function __construct(
         private readonly PriceService $prices,
         private readonly BestSellers $bestSellers,
+        private readonly CatalogCache $cache,
     ) {}
 
     /**
@@ -45,10 +46,11 @@ class Catalog
     public function sections(): Collection
     {
         $counts = Product::query()->visible()->toBase()->selectRaw('category_id, COUNT(*) as total')->groupBy('category_id')->pluck('total', 'category_id');
+        $parents = Category::query()->pluck('parent_id', 'id');
 
         return Category::query()->active()->whereNull('parent_id')->with('media')->orderBy('sort_order')->get()
-            ->each(function (Category $category) use ($counts) {
-                $ids = [$category->id, ...$category->descendantIds()];
+            ->each(function (Category $category) use ($counts, $parents) {
+                $ids = [$category->id, ...$category->descendantIds($parents)];
 
                 $category->setAttribute('products_total', collect($ids)->sum(fn (int $id) => $counts[$id] ?? 0));
             });
@@ -83,12 +85,16 @@ class Catalog
             return new Collection;
         }
 
-        $products = $this->query()->get()
+        $ids = $this->cache->remember('on-offer', fn () => $this->query()->get()
             ->filter(fn (Product $product) => $this->prices->quote($product)->hasDiscount())
             ->sortByDesc(fn (Product $product) => $this->prices->quote($product)->percentOff())
-            ->values();
+            ->pluck('id')
+            ->all());
 
-        return $limit ? $products->take($limit) : $products;
+        // Checked again, because an offer can end while the list is still cached.
+        return $this->inOrder($limit ? array_slice($ids, 0, $limit) : $ids)
+            ->filter(fn (Product $product) => $this->prices->quote($product)->hasDiscount())
+            ->values();
     }
 
     public function nextOfferEnd(): ?Carbon
@@ -105,9 +111,11 @@ class Catalog
     public function bestSelling(?int $limit = null): Collection
     {
         $quantities = $this->bestSellers->quantities();
+        $ranked = array_keys($quantities);
 
+        // Twice what is shown, in case some of the top sellers are hidden or sold out.
         $products = $this->query()
-            ->where(fn (Builder $query) => $query->whereIn('id', array_keys($quantities))->orWhere('is_featured', true))
+            ->where(fn (Builder $query) => $query->whereIn('id', $limit ? array_slice($ranked, 0, $limit * 2) : $ranked)->orWhere('is_featured', true))
             ->get()
             ->sortByDesc(fn (Product $product) => $quantities[$product->id] ?? 0)
             ->values();
@@ -126,11 +134,35 @@ class Catalog
             return new Collection;
         }
 
-        $products = $this->query()->with('category')->get()
-            ->filter(fn (Product $product) => Str::containsAll($this->searchText($product), $words))
-            ->values();
+        $ids = array_keys(array_filter($this->searchIndex(), fn (string $text) => Str::containsAll($text, $words)));
 
-        return $limit ? $products->take($limit) : $products;
+        return $this->inOrder($limit ? array_slice($ids, 0, $limit) : $ids);
+    }
+
+    /**
+     * What each visible product can be found by, newest first. Runs for every key
+     * pressed in the search box, so it must not load the catalog each time.
+     *
+     * @return array<int, string>
+     */
+    private function searchIndex(): array
+    {
+        return $this->cache->remember('search', fn () => $this->query()->with('category')->get()
+            ->mapWithKeys(fn (Product $product) => [$product->id => $this->searchText($product)])
+            ->all());
+    }
+
+    /**
+     * @param  list<int>  $ids
+     * @return Collection<int, Product>
+     */
+    private function inOrder(array $ids): Collection
+    {
+        $positions = array_flip($ids);
+
+        return $this->query()->whereKey($ids)->get()
+            ->sortBy(fn (Product $product) => $positions[$product->id])
+            ->values();
     }
 
     /**

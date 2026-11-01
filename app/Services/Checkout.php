@@ -52,13 +52,14 @@ class Checkout
             throw new CheckoutFailed(__('shop.checkout.cart_empty'));
         }
 
+        $number = Order::nextNumber();
         $lines = $this->lockLines($items);
         $subtotal = $lines->sum(fn (array $line) => $line['line_total']);
         $coupon = $this->lockCoupon($couponCode, $subtotal);
         $totals = $this->prices->totals($subtotal, $coupon, Governorate::query()->findOrFail($customer['governorate_id'])->delivery_fee);
 
         $order = Order::query()->create([
-            'number' => Order::nextNumber(),
+            'number' => $number,
             'name' => $customer['name'],
             'phone' => $customer['phone'],
             'governorate_id' => $customer['governorate_id'],

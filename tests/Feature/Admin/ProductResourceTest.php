@@ -84,6 +84,9 @@ describe('creating', function () {
     });
 
     it('rejects images over 5 MB', function () {
+        // Livewire refuses this on arrival too. Off here, so this checks the form's own rule.
+        config(['livewire.temporary_file_upload.rules' => null]);
+
         Livewire::test(CreateProduct::class)
             ->fillForm(productFormData(['gallery' => [UploadedFile::fake()->image('big.jpg')->size(5121)]]))
             ->call('create')
@@ -93,6 +96,9 @@ describe('creating', function () {
     });
 
     it('rejects files that are not jpeg, png or webp', function () {
+        // Livewire refuses this on arrival too. Off here, so this checks the form's own rule.
+        config(['livewire.temporary_file_upload.rules' => null]);
+
         Livewire::test(CreateProduct::class)
             ->fillForm(productFormData(['gallery' => [UploadedFile::fake()->create('shell.php', 10, 'text/x-php')]]))
             ->call('create')

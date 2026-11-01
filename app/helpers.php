@@ -20,16 +20,17 @@ if (! function_exists('shop_route')) {
 if (! function_exists('shop_link')) {
     /**
      * Puts a path saved in the admin, such as a banner link, under the current
-     * language. Full URLs are left alone.
+     * language. Full web addresses are left alone. Anything else, such as a
+     * javascript: link, goes to the home page.
      */
     function shop_link(?string $link): string
     {
-        if (blank($link)) {
-            return shop_route('home');
+        if (filled($link) && preg_match('#^https?://#i', $link)) {
+            return $link;
         }
 
-        if (! str_starts_with($link, '/')) {
-            return $link;
+        if (blank($link) || ! str_starts_with($link, '/') || str_starts_with($link, '//')) {
+            return shop_route('home');
         }
 
         return url((app()->getLocale() === 'en' ? '/en' : '').$link);

@@ -245,13 +245,20 @@ describe('who can delete', function () {
         Livewire::test(ViewOrder::class, ['record' => $order->id])->assertActionHidden('delete');
     });
 
-    it('lets the owner delete', function () {
+    it('lets the owner delete a finished order', function () {
         $this->actingAs(owner());
-        $order = Order::factory()->create();
+        $order = Order::factory()->create(['status' => OrderStatus::Cancelled]);
 
         Livewire::test(ListOrders::class)->callAction(TestAction::make('delete')->table($order));
 
         expect(Order::query()->count())->toBe(0);
+    });
+
+    it('hides delete on an open order, even from the owner', function () {
+        $this->actingAs(owner());
+        $order = Order::factory()->create(['status' => OrderStatus::New]);
+
+        Livewire::test(ListOrders::class)->assertActionHidden(TestAction::make('delete')->table($order));
     });
 });
 

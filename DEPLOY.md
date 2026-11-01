@@ -32,7 +32,9 @@
 | `post_max_size` | `64M` |
 | `max_execution_time` | `120` |
 
-تحويل الصور يجري أثناء الحفظ، لذلك رفع 10 صور كبيرة دفعة واحدة يحتاج ذاكرة ووقتاً كافيين.
+تحويل الصور يجري أثناء الحفظ، لذلك رفع 10 صور كبيرة دفعة واحدة يحتاج ذاكرة ووقتاً كافيين. تُصغَّر الصور في المتصفح إلى 2400 بكسل قبل الرفع، ولهذا تعمل صور الهاتف العادية حتى مع `128M`، لكن صورة تصل كاملة بدون تصغير تحتاج `256M`.
+
+يضبط ملف `public/.user.ini` هذه القيم تلقائياً إن كانت الاستضافة تستخدم PHP-FPM. تأكد منها بعد النشر من قسم `memory` في `/api/health`.
 
 تحتاج أيضاً **Terminal** في cPanel أو دخول SSH لتنفيذ الأوامر. إن لم يتوفر عندك، اطلب تفعيله من الاستضافة.
 
@@ -110,7 +112,7 @@ C:\Windows\System32\tar.exe -a -c -f ..\joz-release.zip --exclude=.git --exclude
 
 > استخدم المسار الكامل كما هو. كلمة `tar` وحدها تستدعي نسخة Git على جهازك، فتُنتج ملفاً امتداده zip لكنه ليس zip، ويرفض cPanel فتحه.
 
-**يُرفع:** `app`، `bootstrap`، `config`، `database`، `lang`، `public`، `resources`، `routes`، `storage`، `vendor`، `artisan`، `composer.json`، `composer.lock`، `.env.example`.
+**يُرفع:** `app`، `bootstrap`، `config`، `database`، `lang`، `public`، `resources`، `routes`، `scripts`، `storage`، `vendor`، `artisan`، `composer.json`، `composer.lock`، `.env.example`، `.htaccess`.
 
 **لا يُرفع:** `.git`، `node_modules`، `tests`، `.env` الخاص بجهازك.
 
@@ -180,6 +182,7 @@ cp .env.example .env
 | `TELEGRAM_BOT_TOKEN` | من @BotFather على تيليغرام |
 | `ADMIN_EMAIL`، `ADMIN_PASSWORD` | حساب المالك، وكلمة المرور 12 حرفاً على الأقل مع أحرف كبيرة وصغيرة وأرقام ورموز |
 | `BACKUP_NOTIFICATION_EMAIL` | بريد يصله تنبيه عند فشل النسخ الاحتياطي |
+| `HEALTH_TOKEN` | قيمة عشوائية طويلة للمراقبة، أنشئها بالأمر `openssl rand -hex 32` |
 
 اترك `APP_DEBUG=false` دائماً. القيمة `true` تكشف كلمات المرور والكود للزوار.
 
@@ -268,6 +271,8 @@ php artisan optimize
 | طابور الإشعارات والتصدير | كل دقيقة |
 | تحديث خريطة الموقع | يومياً |
 | حذف ملفات Excel الأقدم من 30 يوماً | يومياً |
+| حذف ملفات الذاكرة المؤقتة المنتهية | يومياً |
+| حذف المهام الفاشلة الأقدم من 30 يوماً | يومياً |
 | تنظيف النسخ الاحتياطية القديمة | 01:00 |
 | النسخ الاحتياطي | 01:30 |
 
@@ -275,15 +280,9 @@ php artisan optimize
 
 ## 7. شهادة SSL وفرض HTTPS
 
-1. افتح **SSL/TLS Status** واضغط **Run AutoSSL**، وانتظر ظهور القفل الأخضر للنطاق.
-2. من **Domains** فعّل **Force HTTPS Redirect** بجانب نطاقك.
+افتح **SSL/TLS Status** واضغط **Run AutoSSL**، وانتظر ظهور القفل الأخضر للنطاق **قبل** فتح الموقع.
 
-إن لم يتوفر الخيار، أضف هذين السطرين في `public/.htaccess` بعد `RewriteEngine On`:
-
-```apache
-RewriteCond %{HTTPS} !=on
-RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-```
+ملف `public/.htaccess` يفرض HTTPS بنفسه، مع إبقاء مجلد `.well-known` مفتوحاً عبر http لأن AutoSSL يحتاجه لتجديد الشهادة. لا حاجة لتفعيل **Force HTTPS Redirect**.
 
 تأكد أن `APP_URL` يبدأ بـ `https://` وأن `SESSION_SECURE_COOKIE=true`.
 
@@ -295,7 +294,29 @@ RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
 ## 8. التحديثات والنسخ الاحتياطي
 
-### نشر تحديث
+### النشر عبر Git
+
+بعد التثبيت الأول، يمكن نشر كل تحديث بضغطة واحدة بدل رفع الملفات:
+
+1. على جهازك: `npm run build`، ثم ادفع التغييرات إلى مستودع Git خاص. الاستضافة بلا Node.js، لذلك يجب أن يكون `public/build` مرفوعاً مع الكود.
+2. في cPanel افتح **Git Version Control** وأنشئ مستودعاً مرتبطاً به في `/home/USER/repositories/joz-gallery`، **خارج** `public_html` و`~/joz`.
+3. عند كل تحديث: **Manage** ثم **Pull or Deploy** ثم **Update from Remote** ثم **Deploy HEAD Commit**.
+
+يشغّل هذا الزر ملف `.cpanel.yml`، الذي يشغّل `scripts/deploy.sh`. يفحص السكربت الإعدادات أولاً، ويأخذ نسخة من قاعدة البيانات، ثم يدخل وضع الصيانة ويحدّث الملفات والحزم وقاعدة البيانات، ويعيد الموقع، ثم يفحص `/api/health`. إن فشلت أي خطوة أعاد الموقع للعمل وتوقف. لا يلمس `.env` ولا `storage/` أبداً.
+
+إن كان مجلد الموقع غير `~/joz` فعدّل `DEPLOYPATH` في `.cpanel.yml`. ولتشغيله يدوياً من Terminal:
+
+```bash
+cd ~/repositories/joz-gallery
+```
+
+```bash
+bash scripts/deploy.sh ~/joz
+```
+
+**للرجوع إلى نسخة سابقة:** أعد نشر الرقم الذي يطبعه السكربت. وإن غيّرت النسخة الجديدة بنية قاعدة البيانات، فاسترجع أيضاً النسخة الاحتياطية التي أخذها قبل النشر.
+
+### نشر تحديث يدوياً
 
 1. ابنِ نسخة جديدة كما في الخطوة 3.
 2. على الخادم، ضع الموقع في وضع الصيانة:
@@ -341,6 +362,28 @@ php artisan backup:run
 DB_DUMP_BINARY_PATH=/usr/bin/
 ```
 
+### المراقبة
+
+`https://example.com/api/health` يعطي `ok` أو `down` فقط لأي زائر، ويعطي تفاصيل قاعدة البيانات والذاكرة والقرص وcron مع التوكن:
+
+```bash
+curl -H "X-Health-Token: قيمة_HEALTH_TOKEN" https://example.com/api/health
+```
+
+إن ظهر `degraded` فغالباً cron متوقف أو القرص ممتلئ فوق 90%.
+
+لتجربة 24 ساعة على نسخة تجريبية، شغّل من جهاز آخر غير الخادم:
+
+```bash
+MONITOR_URL=https://staging.example.com MONITOR_TOKEN=قيمة_HEALTH_TOKEN bash scripts/monitor.sh --loop
+```
+
+يفحص الموقع كل 5 دقائق، ويكتب الأزمنة في `staging-latency.csv` والمشاكل في `staging-audit.log`. ولعرض الملخص:
+
+```bash
+bash scripts/monitor.sh --report
+```
+
 ### الاسترجاع
 
 1. فك ضغط الملف.
@@ -376,7 +419,10 @@ php artisan tinker --execute="App\Models\User::where('email', 'you@example.com')
 
 - [ ] ارفع ملف `test.php` إلى `storage/app/public/` من File Manager، وافتح `https://example.com/storage/test.php`. يجب أن يعطي **403**. احذف الملف بعدها.
 - [ ] افتح `https://example.com/storage/`. يجب ألا تظهر قائمة ملفات.
-- [ ] `https://example.com/.env` يجب ألا يفتح.
+- [ ] `https://example.com/.env` و`https://example.com/.git/config` و`https://example.com/composer.lock` يجب ألا تفتح.
+- [ ] `http://example.com` يحوّل إلى `https`.
+- [ ] `https://example.com/api/health` يعطي `ok`، ومع التوكن لا تظهر كلمة `degraded`.
+- [ ] الصفحة الرئيسية ولوحة التحكم بلا أخطاء Content Security Policy في Console المتصفح.
 - [ ] رابط خاطئ يعرض صفحة الخطأ العربية، لا تفاصيل تقنية.
 - [ ] `APP_DEBUG=false` و`APP_ENV=production` في `.env`.
 - [ ] `ADMIN_PASSWORD` محذوفة من `.env`.
@@ -400,7 +446,9 @@ php artisan tinker --execute="App\Models\User::where('email', 'you@example.com')
 | صفحة بيضاء أو خطأ 500 | راجع آخر ملف في `storage/logs/`، وتأكد من صلاحيات `storage` و`bootstrap/cache`، ومن PHP 8.4 |
 | لا تظهر الصور | تأكد أن `APP_URL` مطابق للنطاق، ثم `php artisan storage:link` و`php artisan optimize` |
 | لوحة التحكم بلا تنسيق | `php artisan filament:assets` ثم `php artisan optimize` |
-| لا تصل الإشعارات | تأكد من سطر cron، ومعرّف تيليغرام في الإعدادات، ثم راجع `storage/logs/` |
+| لا تصل الإشعارات | افتح `/api/health` مع التوكن وتأكد أن `scheduler.ok` يساوي `true`، ثم راجع سطر cron ومعرّف تيليغرام و`storage/logs/` |
+| صور أو خطوط لا تظهر، وخطأ Content Security Policy في Console | أضف مصدرها في `app/Http/Middleware/SecurityHeaders.php` |
+| توقف النشر برسالة Another deployment is running | تأكد أن لا نشر آخر يعمل، ثم احذف المجلد `storage/framework/deploy.lock` |
 | تعديل `.env` لا يؤثر | نفّذ `php artisan optimize` بعد كل تعديل، لأن الإعدادات محفوظة في ذاكرة مؤقتة |
 | تعذر الدخول إلى لوحة التحكم عبر http | `SESSION_SECURE_COOKIE=true` يتطلب https، ففعّل SSL أولاً |
 | فشل رفع الصور الكبيرة | ارفع `memory_limit` و`max_execution_time`، أو ارفع الصور على دفعات |
