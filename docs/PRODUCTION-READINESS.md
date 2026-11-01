@@ -360,4 +360,3 @@ The first audit missed the crash below, because it never sent array-shaped input
 - The real delivery fees. `database/seeders/GovernorateSeeder.php` seeds 5,000 and 8,000 dinars as placeholders.
 - Real product text and photos to replace the demo content, including `public/assets/img/demo/`.
 - Whether the seeded store phone, WhatsApp number and Instagram are correct.
-- Whether to keep `AGENTS.md` and `CLAUDE.md`.
