@@ -124,8 +124,11 @@
     }
   }, true);
 
-  // Filters and sorting need the server: hide them rather than offer controls that do nothing.
+  // Filters and sorting need the server: hide them rather than offer controls that do nothing,
+  // and give the products the column the filters used to take.
   var style = document.createElement('style');
-  style.textContent = '.filters, .sorter { display: none !important; }';
+  style.textContent = '.filters, .sorter { display: none !important; }' +
+    '.listing__layout { grid-template-columns: minmax(0, 1fr) !important; }' +
+    '@media (min-width: 1024px) { .listing__results .pgrid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; } }';
   document.head.appendChild(style);
 })();
