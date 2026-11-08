@@ -5,6 +5,8 @@
     // From the checked filters, not the raw query string, which can hold nested arrays.
     $sortFields = collect(['color' => $filters->colors, 'material' => $filters->materials, 'min' => $filters->min, 'max' => $filters->max])
         ->reject(fn (mixed $value) => $value === null || $value === []);
+    // Filtered results stay on their own; otherwise the next section follows on below.
+    $streamNext = $filters->isActive() ? null : ($products->hasMorePages() ? $products->nextPageUrl() : ($nav->next['url'] ?? null));
 @endphp
 
 @section('title', $name.' | '.__('shop.meta.title_suffix'))
@@ -96,7 +98,7 @@
         <noscript><button class="btn btn--ghost" type="submit">{{ __('shop.listing.apply') }}</button></noscript>
       </form>
 
-      <x-product-grid :products="$products" :empty="__('shop.listing.empty')" />
+      @include('partials.section-stream', ['title' => $name, 'empty' => __('shop.listing.empty')])
     </div>
   </div>
 

@@ -121,7 +121,6 @@ return [
         'previous' => 'Previous section',
         'next' => 'Next section',
         'swipe_hint' => 'Swipe left or right to move between sections',
-        'auto_hint' => 'Keep scrolling to go to the next section',
     ],
 
     'countdown' => [

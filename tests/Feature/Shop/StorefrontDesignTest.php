@@ -52,7 +52,7 @@ describe('section pages', function () {
 
         expect(preg_match_all('/class="sec-tab[ "]/', $html))->toBe(4)
             ->and($html)->toContain('مرايات')->toContain('فازات')->toContain(__('shop.nav.picks'))
-            ->and($html)->toMatch('#<a class="sec-tab" href="'.preg_quote(url('/category/lamps'), '#').'"\s+aria-current="page"\s*>#');
+            ->and($html)->toMatch('#<a class="sec-tab" href="'.preg_quote(url('/category/lamps'), '#').'" data-key="\d+"\s+aria-current="page"\s*>#');
     });
 
     it('link to the sections before and after, for the swipe and the pager', function () {
@@ -60,7 +60,30 @@ describe('section pages', function () {
             ->assertSee('data-prev="'.url('/category/mirrors').'"', false)
             ->assertSee('data-next="'.url('/category/vases').'"', false)
             ->assertSee(__('shop.sections_nav.next'))
-            ->assertSee('data-auto-next', false);
+            ->assertSee('data-section-pager', false);
+    });
+
+    it('name the next section for the list to run on into, so moving on needs no new page', function () {
+        $this->get('/category/lamps')
+            ->assertSee('data-stream-next="'.url('/category/vases').'"', false)
+            ->assertSee('data-url="'.url('/category/lamps').'"', false);
+
+        // Each page the list fetches carries its own block with its own heading.
+        Product::factory()->for($this->vases)->create(['name_ar' => 'فازة الكتلة']);
+        $html = $this->get('/category/vases')->getContent();
+        expect(substr_count($html, 'data-stream-block'))->toBe(1)
+            ->and($html)->toContain('data-stream-head hidden')->toContain('فازة الكتلة');
+    });
+
+    it('run on to the next page of a long section before the next section', function () {
+        Product::factory()->for($this->lamps)->count(13)->create();
+
+        $this->get('/category/lamps')->assertSee('data-stream-next="'.url('/category/lamps?page=2').'"', false);
+        $this->get('/category/lamps?page=2')->assertSee('data-stream-next="'.url('/category/vases').'"', false);
+    });
+
+    it('keep filtered results on their own', function () {
+        $this->get('/category/lamps?min=1000')->assertSee('data-stream-next=""', false);
     });
 
     it('wrap around: the last section leads to Joz Picks, and Joz Picks back to the first', function () {
@@ -74,7 +97,7 @@ describe('section pages', function () {
         $floor = Category::factory()->create(['slug' => 'floor-lamps', 'parent_id' => $this->lamps->id, 'name_ar' => 'أرضية']);
 
         expect($this->get('/category/floor-lamps')->getContent())
-            ->toMatch('#href="'.preg_quote(url('/category/lamps'), '#').'"\s+aria-current="page"#');
+            ->toMatch('#href="'.preg_quote(url('/category/lamps'), '#').'" data-key="\d+"\s+aria-current="page"#');
     });
 
     it('keep the English links under /en', function () {

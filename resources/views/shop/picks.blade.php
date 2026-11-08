@@ -19,7 +19,8 @@
       @include('partials.swipe-hint')
     </header>
 
-    <x-product-grid :products="$products" />
+    @php($streamNext = $products->hasMorePages() ? $products->nextPageUrl() : ($nav->next['url'] ?? null))
+    @include('partials.section-stream', ['title' => __('shop.nav.picks'), 'empty' => null])
 
     @include('partials.section-pager')
   </div>

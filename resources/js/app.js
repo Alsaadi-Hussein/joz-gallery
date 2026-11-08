@@ -421,7 +421,7 @@
     });
   })();
 
-  /* ---------- Section pages: tabs, swipe and auto-advance to the next section ---------- */
+  /* ---------- Section pages: one continuous list, tabs and swipe ---------- */
   // The direction is read by /assets/js/view-transition.js on the next page.
   function rememberDirection(dir) {
     try { sessionStorage.setItem('joz_vt', dir); } catch (e) { /* ignore */ }
@@ -432,23 +432,131 @@
     if (!page) return;
     var rtl = document.documentElement.getAttribute('dir') === 'rtl';
     var tabs = Array.prototype.slice.call(page.querySelectorAll('.sec-tab'));
-    var currentIndex = tabs.findIndex(function (t) { return t.getAttribute('aria-current') === 'page'; });
-    var current = tabs[currentIndex];
+    var tabList = page.querySelector('[data-tabs]');
+    var stream = page.querySelector('[data-stream]');
+    var header = document.querySelector('[data-header]');
+    var tabBar = page.querySelector('.sec-tabs');
 
-    // Bring the current tab into view without moving the page.
-    if (current) {
-      var list = current.closest('[data-tabs]');
-      var r = current.getBoundingClientRect(), lr = list.getBoundingClientRect();
-      list.scrollLeft += (r.left + r.width / 2) - (lr.left + lr.width / 2);
+    function tabFor(key) { return tabs.filter(function (t) { return t.getAttribute('data-key') === key; })[0]; }
+    function tabIndex(key) { return tabs.indexOf(tabFor(key)); }
+
+    // Bring a tab into view inside the strip without moving the page.
+    function centreTab(tab, smooth) {
+      if (!tab) return;
+      var r = tab.getBoundingClientRect(), lr = tabList.getBoundingClientRect();
+      tabList.scrollTo({ left: tabList.scrollLeft + (r.left + r.width / 2) - (lr.left + lr.width / 2), behavior: smooth ? 'smooth' : 'auto' });
     }
 
+    var marked = page.querySelector('.sec-tab[aria-current="page"]');
+    var currentKey = marked ? marked.getAttribute('data-key') : null;
+    centreTab(tabFor(currentKey), false);
+
+    function blocks() { return Array.prototype.slice.call(stream ? stream.querySelectorAll('[data-stream-block]') : []); }
+    function topOffset() { return (header ? header.getBoundingClientRect().bottom : 0) + (tabBar ? tabBar.offsetHeight : 0) + 24; }
+
+    // The section on screen marks its tab, and the address and title follow it,
+    // so a link shared or a page reloaded opens where the visitor is.
+    function setCurrent(block) {
+      var key = block.getAttribute('data-key');
+      page.setAttribute('data-prev', block.getAttribute('data-prev') || '');
+      page.setAttribute('data-next', block.getAttribute('data-next-section') || '');
+      var url = block.getAttribute('data-url');
+      if (url && url !== location.href) {
+        try { history.replaceState(history.state, '', url); } catch (e) { /* ignore */ }
+      }
+      if (block.getAttribute('data-title')) document.title = block.getAttribute('data-title');
+      if (key === currentKey) return;
+      currentKey = key;
+      tabs.forEach(function (t) {
+        if (t.getAttribute('data-key') === key) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
+      });
+      centreTab(tabFor(key), true);
+    }
+
+    var ticking = false;
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(function () {
+        ticking = false;
+        var line = topOffset();
+        var all = blocks(), current = all[0];
+        all.forEach(function (b) { if (b.getBoundingClientRect().top <= line) current = b; });
+        if (current) setCurrent(current);
+      });
+    }
+
+    // Load the next section (or the next page of this one) before the visitor reaches the end.
+    if (stream && 'IntersectionObserver' in window && 'DOMParser' in window) {
+      var first = blocks()[0];
+      first.setAttribute('data-title', document.title);
+      var loaded = {};
+      loaded[first.getAttribute('data-url')] = true;
+      var loading = false;
+      var sentinel = document.createElement('div');
+      sentinel.setAttribute('aria-hidden', 'true');
+      stream.after(sentinel);
+      page.classList.add('is-streaming');
+
+      function lastBlock() { var all = blocks(); return all[all.length - 1]; }
+      function nextUrl() {
+        var next = lastBlock().getAttribute('data-stream-next');
+        // Every section has run once: the list stops instead of starting again.
+        return next && !loaded[new URL(next, location.href).href] ? next : null;
+      }
+
+      var io = new IntersectionObserver(function (entries) {
+        if (entries[0].isIntersecting) loadNext();
+      }, { rootMargin: '0px 0px 1400px 0px' });
+
+      function loadNext() {
+        var url = nextUrl();
+        if (loading || !url) { if (!url) io.disconnect(); return; }
+        loading = true;
+        fetch(url, { headers: { 'Accept': 'text/html' } })
+          .then(function (res) { if (!res.ok) throw new Error(res.status); return res.text(); })
+          .then(function (html) {
+            var doc = new DOMParser().parseFromString(html, 'text/html');
+            var block = doc.querySelector('[data-stream-block]');
+            if (!block) throw new Error('no block');
+            var abs = new URL(url, location.href).href;
+            loaded[abs] = true;
+            loaded[new URL(block.getAttribute('data-url') || url, location.href).href] = true;
+            block.setAttribute('data-title', doc.title);
+            var head = block.querySelector('[data-stream-head]');
+            if (head && block.getAttribute('data-key') !== lastBlock().getAttribute('data-key')) head.hidden = false;
+            stream.appendChild(document.adoptNode(block));
+            loading = false;
+            // A short section may leave the end still in view: keep going.
+            var r = sentinel.getBoundingClientRect();
+            if (r.top < window.innerHeight + 1400) loadNext();
+          })
+          .catch(function () { loading = false; io.disconnect(); page.classList.remove('is-streaming'); });
+      }
+      io.observe(sentinel);
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    // A tab for a section already on the page scrolls to it; any other opens its page.
     tabs.forEach(function (t, i) {
-      t.addEventListener('click', function () { rememberDirection(i > currentIndex ? 'forward' : 'backward'); });
+      t.addEventListener('click', function (ev) {
+        var key = t.getAttribute('data-key');
+        var target = blocks().filter(function (b) { return b.getAttribute('data-key') === key; })[0];
+        if (target) {
+          ev.preventDefault();
+          var y = target.getBoundingClientRect().top + window.scrollY - topOffset() + 12;
+          window.scrollTo({ top: Math.max(0, target === blocks()[0] ? 0 : y), behavior: 'smooth' });
+          return;
+        }
+        rememberDirection(i > tabIndex(currentKey) ? 'forward' : 'backward');
+      });
     });
     page.querySelectorAll('[data-nav-dir]').forEach(function (a) {
       a.addEventListener('click', function () { rememberDirection(a.getAttribute('data-nav-dir') === 'next' ? 'forward' : 'backward'); });
     });
 
+    // A sideways flick on a phone opens the section before or after the one on screen.
     var area = page.querySelector('[data-swipe-area]');
     var startX = 0, startY = 0, startT = 0, tracking = false;
     if (area) {
@@ -471,44 +579,6 @@
         window.location.href = target;
       }, { passive: true });
     }
-
-    // At the end of a section, scrolling on opens the next one: once the "next
-    // section" button is fully on screen and the visitor keeps scrolling down,
-    // its bar fills and the next section opens. Scrolling up cancels.
-    var link = page.querySelector('[data-auto-next]');
-    var hint = page.querySelector('.sec-auto-hint');
-    if (!link) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) {
-      if (hint) hint.hidden = true;
-      return;
-    }
-    var AUTO_MS = 1400, visible = false, timer = null, lastY = window.scrollY, touchY = 0;
-    link.style.setProperty('--auto-ms', AUTO_MS + 'ms');
-    function cancel() {
-      if (timer) { clearTimeout(timer); timer = null; }
-      link.classList.remove('is-arming');
-    }
-    function arm() {
-      if (timer || !visible) return;
-      link.classList.add('is-arming');
-      timer = setTimeout(function () { rememberDirection('forward'); window.location.href = link.href; }, AUTO_MS);
-    }
-    new IntersectionObserver(function (entries) {
-      visible = entries[0].intersectionRatio >= 0.9;
-      if (!visible) cancel();
-    }, { threshold: [0, 0.9] }).observe(link);
-    window.addEventListener('scroll', function () {
-      var y = window.scrollY;
-      if (y < lastY - 2) cancel(); else if (y > lastY) arm();
-      lastY = y;
-    }, { passive: true });
-    // A page too short to scroll: a downward wheel or swipe still counts as "keep going".
-    window.addEventListener('wheel', function (ev) { if (ev.deltaY > 0) arm(); else if (ev.deltaY < 0) cancel(); }, { passive: true });
-    window.addEventListener('touchstart', function (ev) { touchY = ev.touches[0].clientY; }, { passive: true });
-    window.addEventListener('touchmove', function (ev) {
-      var dy = touchY - ev.touches[0].clientY;
-      if (dy > 30) arm(); else if (dy < -30) cancel();
-    }, { passive: true });
   })();
 
   /* ---------- Listing controls ---------- */

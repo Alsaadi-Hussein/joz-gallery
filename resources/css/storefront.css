@@ -1246,30 +1246,15 @@ html[dir="rtl"]:active-view-transition-type(backward)::view-transition-new(root)
 .btn--wa { background: var(--wa); color: #fff; }
 .btn--wa:hover { background: var(--wa-deep); }
 
-/* ---------- Auto-advance to the next section at the end of the list ---------- */
-.sec-pager__link--next { position: relative; overflow: hidden; isolation: isolate; }
-.sec-pager__progress {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: rgba(173, 183, 133, .35);
-  transform: scaleX(0);
-  transform-origin: left;
-}
-[dir="rtl"] .sec-pager__progress { transform-origin: right; }
-.sec-pager__link--next.is-arming { border-color: var(--sage-ink); }
-.sec-pager__link--next.is-arming .sec-pager__progress { transform: scaleX(1); transition: transform var(--auto-ms, 1400ms) linear; }
-.sec-auto-hint {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  margin-top: 14px;
-  color: var(--muted);
-  font-size: .8rem;
-}
-.ico-down { width: 16px; height: 16px; transform: rotate(90deg); animation: bob 1.8s var(--ease) infinite; }
-@keyframes bob { 50% { translate: 0 4px; } }
+/* ---------- Sections running on as one list ---------- */
+.sec-block + .sec-block { margin-top: clamp(28px, 5vw, 56px); }
+.sec-block__head { margin-bottom: clamp(16px, 3vw, 26px); }
+.sec-block__head .listing__title { font-size: var(--fs-h3); }
+/* While app.js streams the sections in, the page links and paging are not needed. */
+.is-streaming [data-section-pager],
+.is-streaming .sec-stream .pager { display: none; }
+/* The filters belong to the first section, so they scroll away with it. */
+.is-streaming .filters { position: static; }
 
 /* ---------- Motion preferences ---------- */
 @media (prefers-reduced-motion: reduce) {
