@@ -66,11 +66,11 @@ describe('offers', function () {
     it('shows the band on the home page only while offers run', function () {
         $product = Product::factory()->create();
 
-        $this->get('/')->assertDontSee('offers__panel', false);
+        $this->get('/shop')->assertDontSee('offers__panel', false);
 
         Offer::factory()->forProduct($product)->percent(10)->create();
 
-        $this->get('/')->assertSee('offers__panel', false)->assertSee('data-countdown', false);
+        $this->get('/shop')->assertSee('offers__panel', false)->assertSee('data-countdown', false);
     });
 });
 

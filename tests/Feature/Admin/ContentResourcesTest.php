@@ -179,7 +179,7 @@ describe('settings', function () {
         expect(Setting::lowStockThreshold())->toBe(2)
             ->and(Setting::get('telegram_chat_id'))->toBe('-100123');
 
-        $this->get('/')
+        $this->get('/shop')
             ->assertSee('+964 770 111 2233')
             ->assertSee('@new.gallery')
             ->assertSee('بغداد، الكرادة');

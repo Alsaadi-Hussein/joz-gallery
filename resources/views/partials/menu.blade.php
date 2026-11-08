@@ -10,7 +10,9 @@
       @foreach ($menuSections as $section)
         <a class="sub" href="{{ shop_route('category', $section) }}">{{ $section->localized('name') }}</a>
       @endforeach
+      <a class="sub" href="{{ shop_route('picks') }}">{{ __('shop.nav.picks') }}</a>
     </details>
+    <a href="{{ whatsapp_url(__('shop.whatsapp.projects')) }}" target="_blank" rel="noopener noreferrer">{{ __('shop.projects.short') }}</a>
     <a href="{{ shop_route('offers') }}" class="is-accent">{{ __('shop.nav.offers') }}</a>
     <a href="{{ shop_route('best-sellers') }}">{{ __('shop.nav.best_sellers') }}</a>
     <a href="{{ shop_route('new') }}">{{ __('shop.nav.new') }}</a>

@@ -13,6 +13,7 @@
         @foreach ($menuSections as $section)
           <li><a href="{{ shop_route('category', $section) }}">{{ $section->localized('name') }}</a></li>
         @endforeach
+        <li><a href="{{ shop_route('picks') }}">{{ __('shop.nav.picks') }}</a></li>
         <li><a href="{{ shop_route('offers') }}">{{ __('shop.nav.offers') }}</a></li>
       </ul>
     </nav>

@@ -8,6 +8,10 @@
     $selected = $variants->firstWhere(fn ($variant) => $variant['stock'] > 0);
     $hasDimensions = $product->width_cm && $product->depth_cm && $product->height_cm;
     $metaDescription = $product->meta_description ?: \Illuminate\Support\Str::limit(strip_tags((string) $description), 160);
+    // A product with options has no single price, so the message names the piece only.
+    $orderMessage = $variants->isEmpty()
+        ? __('shop.whatsapp.order_product', ['name' => $name, 'price' => \App\Support\Money::format($quote->final)])
+        : __('shop.whatsapp.ask_product', ['name' => $name]);
     $crumbs = [];
 
     if ($product->category->parent) {
@@ -69,42 +73,8 @@
         @if ($quote->hasDiscount())<span class="badge badge--sale">-{{ $quote->percentOff() }}%</span>@endif
       </div>
 
-      @if ($variants->isNotEmpty())
-        <fieldset class="pdp__options">
-          <legend>{{ __('shop.product.options') }}</legend>
-          <div class="chips">
-            @foreach ($variants as $variant)
-              <label class="option">
-                <input type="radio" name="variant" value="{{ $variant['id'] }}" data-variant-option
-                       data-now="{{ $variant['now'] }}" data-old="{{ $variant['old'] }}" data-stock="{{ $variant['stock'] }}"
-                       @checked($selected && $selected['id'] === $variant['id']) @disabled($variant['stock'] < 1)>
-                <span>{{ $variant['label'] }}</span>
-              </label>
-            @endforeach
-          </div>
-        </fieldset>
-      @endif
-
-      <div class="pdp__actions">
-        <button class="btn btn--walnut btn--block" type="button" data-add="{{ $product->id }}" data-variant="{{ $selected['id'] ?? '' }}" data-name="{{ $name }}" @disabled(! $inStock)>
-          <x-ico name="bag" /><span>{{ $inStock ? __('shop.cart.add') : __('shop.product.sold_out') }}</span>
-        </button>
-        <a class="btn btn--sage btn--block" href="{{ whatsapp_url(__('shop.whatsapp.ask_product', ['name' => $name])."\n".shop_route('product', $product)) }}" target="_blank" rel="noopener noreferrer">
-          <x-ico name="whatsapp" />{{ __('shop.product.ask') }}
-        </a>
-      </div>
-
-      <p class="pdp__note"><x-ico name="truck" />{{ __('shop.product.delivery_note') }}</p>
-
-      @if ($description)
-        <section class="pdp__section-block">
-          <h2>{{ __('shop.product.description') }}</h2>
-          <p>{{ $description }}</p>
-        </section>
-      @endif
-
       @if ($product->localized('material') || $product->localized('color') || $hasDimensions)
-        <section class="pdp__section-block">
+        <section class="pdp__section-block pdp__specs">
           <h2>{{ __('shop.product.details') }}</h2>
           <dl class="specs">
             @if ($product->localized('material'))
@@ -125,6 +95,41 @@
           </dl>
         </section>
       @endif
+
+      @if ($variants->isNotEmpty())
+        <fieldset class="pdp__options">
+          <legend>{{ __('shop.product.options') }}</legend>
+          <div class="chips">
+            @foreach ($variants as $variant)
+              <label class="option">
+                <input type="radio" name="variant" value="{{ $variant['id'] }}" data-variant-option
+                       data-now="{{ $variant['now'] }}" data-old="{{ $variant['old'] }}" data-stock="{{ $variant['stock'] }}"
+                       @checked($selected && $selected['id'] === $variant['id']) @disabled($variant['stock'] < 1)>
+                <span>{{ $variant['label'] }}</span>
+              </label>
+            @endforeach
+          </div>
+        </fieldset>
+      @endif
+
+      <div class="pdp__actions">
+        <button class="btn btn--walnut btn--block" type="button" data-add="{{ $product->id }}" data-variant="{{ $selected['id'] ?? '' }}" data-name="{{ $name }}" @disabled(! $inStock)>
+          <x-ico name="bag" /><span>{{ $inStock ? __('shop.cart.add') : __('shop.product.sold_out') }}</span>
+        </button>
+        <a class="btn btn--wa btn--block" href="{{ whatsapp_url($orderMessage."\n".shop_route('product', $product)) }}" target="_blank" rel="noopener noreferrer">
+          <x-ico name="whatsapp" />{{ __('shop.whatsapp.order') }}
+        </a>
+      </div>
+
+      <p class="pdp__note"><x-ico name="truck" />{{ __('shop.product.delivery_note') }}</p>
+
+      @if ($description)
+        <section class="pdp__section-block">
+          <h2>{{ __('shop.product.description') }}</h2>
+          <p>{{ $description }}</p>
+        </section>
+      @endif
+
     </div>
   </div>
 

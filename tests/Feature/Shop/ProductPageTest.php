@@ -110,11 +110,19 @@ describe('sharing and search engines', function () {
             ->assertSee('<link rel="alternate" hreflang="x-default" href="'.url('/product/green-sofa').'">', false);
     });
 
-    it('prefills the WhatsApp question with the product name and link', function () {
-        $message = rawurlencode('Hello Joz Gallery, I would like to ask about: Green Sofa'."\n".url('/en/product/green-sofa'));
+    it('prefills the WhatsApp order with the product name, price and link', function () {
+        $message = rawurlencode("Hello Joz Gallery, I would like to order this piece:\nGreen Sofa\nPrice: 1,000,000 IQD\n".url('/en/product/green-sofa'));
 
         $this->get('/en/product/green-sofa')
-            ->assertSee('https://wa.me/9647740243538?text='.$message, false);
+            ->assertSee('https://wa.me/9647740243538?text='.$message, false)
+            ->assertSee('Order on WhatsApp');
+    });
+
+    it('leaves the price out of the WhatsApp message for a product with options', function () {
+        ProductVariant::factory()->for($this->product)->create(['color_en' => 'Blue', 'stock' => 3]);
+        $message = rawurlencode('Hello Joz Gallery, I would like to ask about: Green Sofa'."\n".url('/en/product/green-sofa'));
+
+        $this->get('/en/product/green-sofa')->assertSee('https://wa.me/9647740243538?text='.$message, false);
     });
 });
 

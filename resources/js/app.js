@@ -421,6 +421,96 @@
     });
   })();
 
+  /* ---------- Section pages: tabs, swipe and auto-advance to the next section ---------- */
+  // The direction is read by /assets/js/view-transition.js on the next page.
+  function rememberDirection(dir) {
+    try { sessionStorage.setItem('joz_vt', dir); } catch (e) { /* ignore */ }
+  }
+
+  (function () {
+    var page = document.querySelector('[data-section-page]');
+    if (!page) return;
+    var rtl = document.documentElement.getAttribute('dir') === 'rtl';
+    var tabs = Array.prototype.slice.call(page.querySelectorAll('.sec-tab'));
+    var currentIndex = tabs.findIndex(function (t) { return t.getAttribute('aria-current') === 'page'; });
+    var current = tabs[currentIndex];
+
+    // Bring the current tab into view without moving the page.
+    if (current) {
+      var list = current.closest('[data-tabs]');
+      var r = current.getBoundingClientRect(), lr = list.getBoundingClientRect();
+      list.scrollLeft += (r.left + r.width / 2) - (lr.left + lr.width / 2);
+    }
+
+    tabs.forEach(function (t, i) {
+      t.addEventListener('click', function () { rememberDirection(i > currentIndex ? 'forward' : 'backward'); });
+    });
+    page.querySelectorAll('[data-nav-dir]').forEach(function (a) {
+      a.addEventListener('click', function () { rememberDirection(a.getAttribute('data-nav-dir') === 'next' ? 'forward' : 'backward'); });
+    });
+
+    var area = page.querySelector('[data-swipe-area]');
+    var startX = 0, startY = 0, startT = 0, tracking = false;
+    if (area) {
+      area.addEventListener('touchstart', function (ev) {
+        if (ev.touches.length !== 1 || ev.target.closest('.offers__rail, input, select, textarea, dialog, details')) { tracking = false; return; }
+        tracking = true;
+        startX = ev.touches[0].clientX; startY = ev.touches[0].clientY; startT = Date.now();
+      }, { passive: true });
+      area.addEventListener('touchend', function (ev) {
+        if (!tracking) return;
+        tracking = false;
+        var t = ev.changedTouches[0];
+        var dx = t.clientX - startX, dy = t.clientY - startY;
+        // A clear sideways flick: far enough, mostly horizontal, reasonably quick.
+        if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.8 || Date.now() - startT > 800) return;
+        var forward = rtl ? dx > 0 : dx < 0;
+        var target = page.getAttribute(forward ? 'data-next' : 'data-prev');
+        if (!target) return;
+        rememberDirection(forward ? 'forward' : 'backward');
+        window.location.href = target;
+      }, { passive: true });
+    }
+
+    // At the end of a section, scrolling on opens the next one: once the "next
+    // section" button is fully on screen and the visitor keeps scrolling down,
+    // its bar fills and the next section opens. Scrolling up cancels.
+    var link = page.querySelector('[data-auto-next]');
+    var hint = page.querySelector('.sec-auto-hint');
+    if (!link) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) {
+      if (hint) hint.hidden = true;
+      return;
+    }
+    var AUTO_MS = 1400, visible = false, timer = null, lastY = window.scrollY, touchY = 0;
+    link.style.setProperty('--auto-ms', AUTO_MS + 'ms');
+    function cancel() {
+      if (timer) { clearTimeout(timer); timer = null; }
+      link.classList.remove('is-arming');
+    }
+    function arm() {
+      if (timer || !visible) return;
+      link.classList.add('is-arming');
+      timer = setTimeout(function () { rememberDirection('forward'); window.location.href = link.href; }, AUTO_MS);
+    }
+    new IntersectionObserver(function (entries) {
+      visible = entries[0].intersectionRatio >= 0.9;
+      if (!visible) cancel();
+    }, { threshold: [0, 0.9] }).observe(link);
+    window.addEventListener('scroll', function () {
+      var y = window.scrollY;
+      if (y < lastY - 2) cancel(); else if (y > lastY) arm();
+      lastY = y;
+    }, { passive: true });
+    // A page too short to scroll: a downward wheel or swipe still counts as "keep going".
+    window.addEventListener('wheel', function (ev) { if (ev.deltaY > 0) arm(); else if (ev.deltaY < 0) cancel(); }, { passive: true });
+    window.addEventListener('touchstart', function (ev) { touchY = ev.touches[0].clientY; }, { passive: true });
+    window.addEventListener('touchmove', function (ev) {
+      var dy = touchY - ev.touches[0].clientY;
+      if (dy > 30) arm(); else if (dy < -30) cancel();
+    }, { passive: true });
+  })();
+
   /* ---------- Listing controls ---------- */
   document.querySelectorAll('[data-autosubmit] select').forEach(function (select) {
     select.addEventListener('change', function () { select.form.submit(); });

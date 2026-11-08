@@ -22,7 +22,7 @@ class GenerateSitemap extends Command
     {
         $sitemap = Sitemap::create();
 
-        foreach (['home', 'offers', 'best-sellers', 'new'] as $route) {
+        foreach (['welcome', 'home', 'picks', 'offers', 'best-sellers', 'new'] as $route) {
             $this->add($sitemap, $route);
         }
 

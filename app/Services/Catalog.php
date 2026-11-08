@@ -75,6 +75,16 @@ class Catalog
     }
 
     /**
+     * The products marked as featured in the admin: "Joz Picks".
+     *
+     * @return Collection<int, Product>
+     */
+    public function featured(?int $limit = null): Collection
+    {
+        return $this->query()->where('is_featured', true)->limit($limit)->get();
+    }
+
+    /**
      * Products discounted right now, biggest discount first.
      *
      * @return Collection<int, Product>

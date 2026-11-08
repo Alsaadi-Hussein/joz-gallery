@@ -30,6 +30,7 @@ return [
         'offers' => 'Offers',
         'best_sellers' => 'Best Sellers',
         'new' => 'New In',
+        'picks' => 'Joz Picks',
         'about' => 'About Us',
         'contact' => 'Contact',
         'track' => 'Track Order',
@@ -41,6 +42,7 @@ return [
         'switch_short' => 'ع',
         'switch_long' => 'العربية',
         'switch_label' => 'العربية',
+        'switch_full' => 'العربية',
     ],
 
     'announce' => [
@@ -53,8 +55,10 @@ return [
         'greeting' => 'Hello Joz Gallery, I have a question.',
         'chat' => 'Chat on WhatsApp',
         'order' => 'Order on WhatsApp',
+        'order_product' => "Hello Joz Gallery, I would like to order this piece:\n:name\nPrice: :price",
         'ask_product' => 'Hello Joz Gallery, I would like to ask about: :name',
         'cart_intro' => 'Hello Joz Gallery, I would like to order:',
+        'projects' => 'Hello, I would like to ask about furnishing a project (apartments, a compound, a ministry or a company).',
     ],
 
     'hero' => [
@@ -91,6 +95,33 @@ return [
         'ig_title' => 'See our latest pieces on Instagram',
         'ig_text' => 'We share new arrivals and styling ideas every day on Instagram. For a quick order, message us directly on WhatsApp.',
         'ig_follow' => 'Follow on Instagram',
+    ],
+
+    'welcome' => [
+        'enter' => 'Enter the store',
+        'contact' => 'Contact us',
+        'call' => 'Call',
+        'delivery' => 'Delivery to every governorate in Iraq',
+    ],
+
+    'projects' => [
+        'short' => 'Furnishing projects',
+        'eyebrow' => 'Projects',
+        'title' => 'Furnishing apartments, compounds, ministries and companies',
+        'text' => 'Talk directly to our projects team for a custom quote.',
+        'cta' => 'Message our projects team',
+    ],
+
+    'picks' => [
+        'subtitle' => 'Pieces chosen with care by the Joz Gallery team.',
+    ],
+
+    'sections_nav' => [
+        'all' => 'All sections',
+        'previous' => 'Previous section',
+        'next' => 'Next section',
+        'swipe_hint' => 'Swipe left or right to move between sections',
+        'auto_hint' => 'Keep scrolling to go to the next section',
     ],
 
     'countdown' => [
