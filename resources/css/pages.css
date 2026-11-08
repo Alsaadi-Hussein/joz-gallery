@@ -267,3 +267,8 @@
 .main-nav .mega__subs { display: grid; gap: 2px; margin-top: 6px; font-size: var(--fs-small); }
 .mega__subs a { color: var(--muted); }
 .mega__subs a:hover { color: var(--walnut); }
+
+/* ---------- Section pages: the tab strip sits flush under the header ---------- */
+.site > main.listing--sections { padding-block: 0; }
+.listing--sections .crumbs { margin-bottom: 0; }
+.listing--sections .listing__head { margin-block: 18px clamp(18px, 3vw, 30px); }

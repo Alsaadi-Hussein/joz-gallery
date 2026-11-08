@@ -11,17 +11,20 @@ use App\Http\Controllers\Shop\RobotsController;
 use App\Http\Controllers\Shop\SearchController;
 use App\Http\Controllers\Shop\SitemapController;
 use App\Http\Controllers\Shop\TrackController;
+use App\Http\Controllers\Shop\WelcomeController;
 use Illuminate\Support\Facades\Route;
 
 // The last word of each throttle gives it its own count. Without it every route shares
 // one count per visitor, and typing in the search box uses up the order tracking limit.
 $storefront = function (): void {
-    Route::get('/', HomeController::class)->name('home');
+    Route::get('/', WelcomeController::class)->name('welcome');
+    Route::get('/shop', HomeController::class)->name('home');
     Route::get('/category/{category:slug}', CategoryController::class)->name('category');
     Route::get('/product/{product:slug}', ProductController::class)->name('product');
     Route::get('/offers', [CollectionController::class, 'offers'])->name('offers');
     Route::get('/best-sellers', [CollectionController::class, 'bestSellers'])->name('best-sellers');
     Route::get('/new', [CollectionController::class, 'newArrivals'])->name('new');
+    Route::get('/joz-picks', [CollectionController::class, 'picks'])->name('picks');
     Route::get('/search', [SearchController::class, 'index'])->middleware('throttle:60,1,search')->name('search');
     Route::get('/search/suggest', [SearchController::class, 'suggest'])->middleware('throttle:60,1,suggest')->name('search.suggest');
     Route::get('/page/{page:slug}', PageController::class)->name('page');

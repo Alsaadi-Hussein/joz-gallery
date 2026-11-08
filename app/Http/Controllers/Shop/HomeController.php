@@ -18,6 +18,7 @@ class HomeController extends Controller
         return view('shop.home', [
             'banners' => Banner::query()->where('is_active', true)->orderBy('sort_order')->with('media')->get(),
             'sections' => $catalog->sections(),
+            'picksTotal' => $catalog->featured()->count(),
             'offerProducts' => $catalog->forCards($catalog->onOffer(self::OFFERS_SHOWN)),
             'offerEndsAt' => $catalog->nextOfferEnd(),
             'bestSellers' => $catalog->forCards($catalog->bestSelling(self::PRODUCTS_SHOWN)),

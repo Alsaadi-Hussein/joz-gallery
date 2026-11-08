@@ -421,6 +421,166 @@
     });
   })();
 
+  /* ---------- Section pages: one continuous list, tabs and swipe ---------- */
+  // The direction is read by /assets/js/view-transition.js on the next page.
+  function rememberDirection(dir) {
+    try { sessionStorage.setItem('joz_vt', dir); } catch (e) { /* ignore */ }
+  }
+
+  (function () {
+    var page = document.querySelector('[data-section-page]');
+    if (!page) return;
+    var rtl = document.documentElement.getAttribute('dir') === 'rtl';
+    var tabs = Array.prototype.slice.call(page.querySelectorAll('.sec-tab'));
+    var tabList = page.querySelector('[data-tabs]');
+    var stream = page.querySelector('[data-stream]');
+    var header = document.querySelector('[data-header]');
+    var tabBar = page.querySelector('.sec-tabs');
+
+    function tabFor(key) { return tabs.filter(function (t) { return t.getAttribute('data-key') === key; })[0]; }
+    function tabIndex(key) { return tabs.indexOf(tabFor(key)); }
+
+    // Bring a tab into view inside the strip without moving the page.
+    function centreTab(tab, smooth) {
+      if (!tab) return;
+      var r = tab.getBoundingClientRect(), lr = tabList.getBoundingClientRect();
+      tabList.scrollTo({ left: tabList.scrollLeft + (r.left + r.width / 2) - (lr.left + lr.width / 2), behavior: smooth ? 'smooth' : 'auto' });
+    }
+
+    var marked = page.querySelector('.sec-tab[aria-current="page"]');
+    var currentKey = marked ? marked.getAttribute('data-key') : null;
+    centreTab(tabFor(currentKey), false);
+
+    function blocks() { return Array.prototype.slice.call(stream ? stream.querySelectorAll('[data-stream-block]') : []); }
+    function topOffset() { return (header ? header.getBoundingClientRect().bottom : 0) + (tabBar ? tabBar.offsetHeight : 0) + 24; }
+
+    // The section on screen marks its tab, and the address and title follow it,
+    // so a link shared or a page reloaded opens where the visitor is.
+    function setCurrent(block) {
+      var key = block.getAttribute('data-key');
+      page.setAttribute('data-prev', block.getAttribute('data-prev') || '');
+      page.setAttribute('data-next', block.getAttribute('data-next-section') || '');
+      var url = block.getAttribute('data-url');
+      if (url && url !== location.href) {
+        try { history.replaceState(history.state, '', url); } catch (e) { /* ignore */ }
+      }
+      if (block.getAttribute('data-title')) document.title = block.getAttribute('data-title');
+      if (key === currentKey) return;
+      currentKey = key;
+      tabs.forEach(function (t) {
+        if (t.getAttribute('data-key') === key) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
+      });
+      centreTab(tabFor(key), true);
+    }
+
+    var ticking = false;
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(function () {
+        ticking = false;
+        var line = topOffset();
+        var all = blocks(), current = all[0];
+        all.forEach(function (b) { if (b.getBoundingClientRect().top <= line) current = b; });
+        if (current) setCurrent(current);
+      });
+    }
+
+    // Load the next section (or the next page of this one) before the visitor reaches the end.
+    if (stream && 'IntersectionObserver' in window && 'DOMParser' in window) {
+      var first = blocks()[0];
+      first.setAttribute('data-title', document.title);
+      var loaded = {};
+      loaded[first.getAttribute('data-url')] = true;
+      var loading = false;
+      var sentinel = document.createElement('div');
+      sentinel.setAttribute('aria-hidden', 'true');
+      stream.after(sentinel);
+      page.classList.add('is-streaming');
+
+      function lastBlock() { var all = blocks(); return all[all.length - 1]; }
+      function nextUrl() {
+        var next = lastBlock().getAttribute('data-stream-next');
+        // Every section has run once: the list stops instead of starting again.
+        return next && !loaded[new URL(next, location.href).href] ? next : null;
+      }
+
+      var io = new IntersectionObserver(function (entries) {
+        if (entries[0].isIntersecting) loadNext();
+      }, { rootMargin: '0px 0px 1400px 0px' });
+
+      function loadNext() {
+        var url = nextUrl();
+        if (loading || !url) { if (!url) io.disconnect(); return; }
+        loading = true;
+        fetch(url, { headers: { 'Accept': 'text/html' } })
+          .then(function (res) { if (!res.ok) throw new Error(res.status); return res.text(); })
+          .then(function (html) {
+            var doc = new DOMParser().parseFromString(html, 'text/html');
+            var block = doc.querySelector('[data-stream-block]');
+            if (!block) throw new Error('no block');
+            var abs = new URL(url, location.href).href;
+            loaded[abs] = true;
+            loaded[new URL(block.getAttribute('data-url') || url, location.href).href] = true;
+            block.setAttribute('data-title', doc.title);
+            var head = block.querySelector('[data-stream-head]');
+            if (head && block.getAttribute('data-key') !== lastBlock().getAttribute('data-key')) head.hidden = false;
+            stream.appendChild(document.adoptNode(block));
+            loading = false;
+            // A short section may leave the end still in view: keep going.
+            var r = sentinel.getBoundingClientRect();
+            if (r.top < window.innerHeight + 1400) loadNext();
+          })
+          .catch(function () { loading = false; io.disconnect(); page.classList.remove('is-streaming'); });
+      }
+      io.observe(sentinel);
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    // A tab for a section already on the page scrolls to it; any other opens its page.
+    tabs.forEach(function (t, i) {
+      t.addEventListener('click', function (ev) {
+        var key = t.getAttribute('data-key');
+        var target = blocks().filter(function (b) { return b.getAttribute('data-key') === key; })[0];
+        if (target) {
+          ev.preventDefault();
+          var y = target.getBoundingClientRect().top + window.scrollY - topOffset() + 12;
+          window.scrollTo({ top: Math.max(0, target === blocks()[0] ? 0 : y), behavior: 'smooth' });
+          return;
+        }
+        rememberDirection(i > tabIndex(currentKey) ? 'forward' : 'backward');
+      });
+    });
+    page.querySelectorAll('[data-nav-dir]').forEach(function (a) {
+      a.addEventListener('click', function () { rememberDirection(a.getAttribute('data-nav-dir') === 'next' ? 'forward' : 'backward'); });
+    });
+
+    // A sideways flick on a phone opens the section before or after the one on screen.
+    var area = page.querySelector('[data-swipe-area]');
+    var startX = 0, startY = 0, startT = 0, tracking = false;
+    if (area) {
+      area.addEventListener('touchstart', function (ev) {
+        if (ev.touches.length !== 1 || ev.target.closest('.offers__rail, input, select, textarea, dialog, details')) { tracking = false; return; }
+        tracking = true;
+        startX = ev.touches[0].clientX; startY = ev.touches[0].clientY; startT = Date.now();
+      }, { passive: true });
+      area.addEventListener('touchend', function (ev) {
+        if (!tracking) return;
+        tracking = false;
+        var t = ev.changedTouches[0];
+        var dx = t.clientX - startX, dy = t.clientY - startY;
+        // A clear sideways flick: far enough, mostly horizontal, reasonably quick.
+        if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.8 || Date.now() - startT > 800) return;
+        var forward = rtl ? dx > 0 : dx < 0;
+        var target = page.getAttribute(forward ? 'data-next' : 'data-prev');
+        if (!target) return;
+        rememberDirection(forward ? 'forward' : 'backward');
+        window.location.href = target;
+      }, { passive: true });
+    }
+  })();
+
   /* ---------- Listing controls ---------- */
   document.querySelectorAll('[data-autosubmit] select').forEach(function (select) {
     select.addEventListener('change', function () { select.form.submit(); });

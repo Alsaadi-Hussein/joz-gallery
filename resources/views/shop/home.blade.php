@@ -6,9 +6,9 @@
   <nav class="highlights" aria-label="{{ __('shop.nav.sections') }}">
     <ul class="highlights__list wrap">
       <li>
-        <a class="hl" href="{{ shop_route('new') }}">
+        <a class="hl" href="{{ shop_route('picks') }}">
           <span class="hl__ring hl__ring--brand"><img src="{{ asset('assets/img/brand/emblem-cream.png') }}" alt="" width="64" height="64"></span>
-          <span class="hl__label">{{ __('shop.nav.new') }}</span>
+          <span class="hl__label">{{ __('shop.nav.picks') }}</span>
         </a>
       </li>
       @foreach ($sections as $section)
@@ -19,6 +19,12 @@
           </a>
         </li>
       @endforeach
+      <li>
+        <a class="hl" href="{{ whatsapp_url(__('shop.whatsapp.projects')) }}" target="_blank" rel="noopener noreferrer">
+          <span class="hl__ring hl__ring--wa"><x-ico name="whatsapp" /></span>
+          <span class="hl__label">{{ __('shop.projects.short') }}</span>
+        </a>
+      </li>
     </ul>
   </nav>
 
@@ -90,7 +96,27 @@
           </a>
         </li>
       @endforeach
+      <li>
+        <a class="cat cat--picks" href="{{ shop_route('picks') }}">
+          <img src="{{ asset('assets/img/demo/picks.webp') }}" alt="" width="640" height="640" loading="lazy" decoding="async">
+          <span class="cat__seal" aria-hidden="true"><img src="{{ asset('assets/img/brand/emblem-cream.png') }}" alt="" width="56" height="56" loading="lazy"></span>
+          <span class="cat__info">
+            <span class="cat__name">{{ __('shop.nav.picks') }}</span>
+            <span class="cat__count">{{ trans_choice('shop.product_count', $picksTotal) }}<x-ico name="arrow" class="ico-dir" /></span>
+          </span>
+        </a>
+      </li>
     </ul>
+
+    <a class="projects" href="{{ whatsapp_url(__('shop.whatsapp.projects')) }}" target="_blank" rel="noopener noreferrer">
+      <img class="projects__img" src="{{ asset('assets/img/demo/projects-wide.webp') }}" alt="" width="1200" height="700" loading="lazy" decoding="async">
+      <span class="projects__body">
+        <span class="eyebrow eyebrow--light">{{ __('shop.projects.eyebrow') }}</span>
+        <span class="projects__title">{{ __('shop.projects.title') }}</span>
+        <span class="projects__text">{{ __('shop.projects.text') }}</span>
+        <span class="btn btn--sage"><x-ico name="whatsapp" />{{ __('shop.projects.cta') }}</span>
+      </span>
+    </a>
   </section>
 
   @if ($offerProducts->isNotEmpty())

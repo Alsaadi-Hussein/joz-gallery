@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Shop;
 
 use App\Http\Controllers\Controller;
 use App\Services\Catalog;
+use App\Support\SectionNav;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -35,6 +36,18 @@ class CollectionController extends Controller
             'title' => __('shop.nav.new'),
             'subtitle' => __('shop.home.new_sub'),
             'products' => $catalog->paginate($catalog->newArrivals(), $request),
+        ]);
+    }
+
+    /**
+     * "Joz Picks": the featured products, shown as one more section with the
+     * section tabs on top.
+     */
+    public function picks(Request $request, Catalog $catalog): View
+    {
+        return view('shop.picks', [
+            'nav' => SectionNav::make($catalog->sections(), SectionNav::PICKS),
+            'products' => $catalog->paginate($catalog->featured(), $request),
         ]);
     }
 }

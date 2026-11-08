@@ -5,6 +5,8 @@
     // From the checked filters, not the raw query string, which can hold nested arrays.
     $sortFields = collect(['color' => $filters->colors, 'material' => $filters->materials, 'min' => $filters->min, 'max' => $filters->max])
         ->reject(fn (mixed $value) => $value === null || $value === []);
+    // Filtered results stay on their own; otherwise the next section follows on below.
+    $streamNext = $filters->isActive() ? null : ($products->hasMorePages() ? $products->nextPageUrl() : ($nav->next['url'] ?? null));
 @endphp
 
 @section('title', $name.' | '.__('shop.meta.title_suffix'))
@@ -12,15 +14,21 @@
 @section('canonical', canonical_url($products))
 
 @section('content')
-<main id="main" class="listing wrap">
+<main id="main" class="listing listing--sections" data-section-page
+      data-prev="{{ $nav->previous['url'] ?? '' }}" data-next="{{ $nav->next['url'] ?? '' }}">
+  @include('partials.section-tabs')
+
+  <div class="wrap listing__body" data-swipe-area>
   <x-breadcrumb :items="array_filter([
+      __('shop.nav.sections') => shop_route('home').'#sections',
       $category->parent?->localized('name') ?? '' => $category->parent ? shop_route('category', $category->parent) : null,
       $name => null,
   ], fn ($url, $label) => $label !== '', ARRAY_FILTER_USE_BOTH)" />
 
-  <header class="listing__head">
+  <header class="listing__head listing__head--center">
     <h1 class="listing__title">{{ $name }}</h1>
     <p class="muted">{{ trans_choice('shop.product_count', $products->total()) }}</p>
+    @include('partials.swipe-hint')
   </header>
 
   @if ($subcategories->isNotEmpty())
@@ -90,8 +98,11 @@
         <noscript><button class="btn btn--ghost" type="submit">{{ __('shop.listing.apply') }}</button></noscript>
       </form>
 
-      <x-product-grid :products="$products" :empty="__('shop.listing.empty')" />
+      @include('partials.section-stream', ['title' => $name, 'empty' => __('shop.listing.empty')])
     </div>
+  </div>
+
+  @include('partials.section-pager')
   </div>
 </main>
 @endsection

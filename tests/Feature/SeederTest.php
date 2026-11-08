@@ -41,27 +41,46 @@ it('builds the store from the demo, and running it again changes nothing', funct
         Media::query()->count(),
     ];
 
-    expect($counts())->toBe([18, 6, 13, 5, 3, 5, 7, 1, 25]);
+    expect($counts())->toBe([18, 11, 32, 7, 3, 5, 7, 1, 77]);
 
     $this->seed(DatabaseSeeder::class);
 
-    expect($counts())->toBe([18, 6, 13, 5, 3, 5, 7, 1, 25]);
+    expect($counts())->toBe([18, 11, 32, 7, 3, 5, 7, 1, 77]);
 
-    // Every demo price, as shown on the demo's home page.
+    // Every price, as the design preview shows it.
     $expected = [
-        'emerald-velvet-sofa' => [1_450_000, 1_232_500],
-        'sand-three-seater' => [1_850_000, 1_850_000],
+        'round-brass-mirror' => [310_000, 310_000],
+        'oval-wall-mirror' => [285_000, 285_000],
+        'walnut-side-table' => [240_000, 192_000],
+        'round-dining-table' => [450_000, 450_000],
+        'c-side-table' => [135_000, 135_000],
+        'walnut-gold-console' => [890_000, 890_000],
+        'rattan-console' => [640_000, 544_000],
+        'bonsai-ficus' => [95_000, 95_000],
+        'aloe-succulent' => [25_000, 25_000],
+        'ficus-plant' => [60_000, 60_000],
+        'terracotta-cactus' => [20_000, 20_000],
+        'cast-iron-casserole' => [120_000, 120_000],
+        'ceramic-cup-set' => [45_000, 45_000],
+        'porcelain-mug' => [15_000, 15_000],
+        'tripod-table-lamp' => [110_000, 110_000],
+        'glass-candle-holder' => [30_000, 30_000],
+        'brass-pendant-trio' => [395_000, 395_000],
+        'ivory-ceramic-vase' => [85_000, 85_000],
+        'white-bud-vase' => [35_000, 35_000],
+        'amber-glass-vase' => [55_000, 55_000],
+        'gold-silk-rug' => [520_000, 416_000],
+        'still-life-flowers' => [175_000, 175_000],
+        'abstract-oil' => [210_000, 168_000],
+        'gallery-frame-set' => [160_000, 160_000],
         'cream-boucle-armchair' => [650_000, 552_500],
         'swivel-lounge-chair' => [720_000, 720_000],
-        'walnut-side-table' => [240_000, 192_000],
-        'brass-pendant-trio' => [395_000, 395_000],
-        'charcoal-floor-lamp' => [145_000, 145_000],
-        'ivory-ceramic-vase' => [85_000, 85_000],
+        'rattan-wood-chair' => [185_000, 185_000],
+        'emerald-velvet-sofa' => [1_450_000, 1_232_500],
+        'sand-three-seater' => [1_850_000, 1_850_000],
         'royal-tufted-bed' => [2_350_000, 2_100_000],
         'natural-oak-bed' => [1_650_000, 1_650_000],
         'emerald-dining-set' => [2_900_000, 2_900_000],
-        'round-brass-mirror' => [310_000, 310_000],
-        'gold-silk-rug' => [520_000, 416_000],
     ];
 
     foreach ($expected as $slug => [$base, $final]) {
@@ -72,9 +91,30 @@ it('builds the store from the demo, and running it again changes nothing', funct
 
     // The home page sections.
     expect(Product::query()->where('is_new', true)->pluck('slug')->all())
-        ->toEqualCanonicalizing(['sand-three-seater', 'swivel-lounge-chair', 'charcoal-floor-lamp', 'ivory-ceramic-vase'])
+        ->toEqualCanonicalizing([
+            'round-brass-mirror',
+            'round-dining-table',
+            'walnut-gold-console',
+            'bonsai-ficus',
+            'cast-iron-casserole',
+            'tripod-table-lamp',
+            'ivory-ceramic-vase',
+            'amber-glass-vase',
+            'still-life-flowers',
+            'swivel-lounge-chair',
+            'sand-three-seater',
+            'natural-oak-bed',
+        ])
         ->and(Product::query()->where('is_featured', true)->pluck('slug')->all())
-        ->toEqualCanonicalizing(['cream-boucle-armchair', 'walnut-side-table', 'emerald-velvet-sofa', 'brass-pendant-trio']);
+        ->toEqualCanonicalizing([
+            'round-brass-mirror',
+            'walnut-gold-console',
+            'bonsai-ficus',
+            'ivory-ceramic-vase',
+            'still-life-flowers',
+            'cream-boucle-armchair',
+            'emerald-velvet-sofa',
+        ]);
 
     // Every product has a photo with both conversions.
     Product::query()->get()->each(function (Product $product) {
@@ -85,9 +125,36 @@ it('builds the store from the demo, and running it again changes nothing', funct
             ->and($media->hasGeneratedConversion('share'))->toBeTrue();
     });
 
-    // New arrivals keep the demo's order when listed newest first.
-    expect(Product::query()->where('is_new', true)->latest()->pluck('slug')->all())
-        ->toBe(['sand-three-seater', 'swivel-lounge-chair', 'charcoal-floor-lamp', 'ivory-ceramic-vase']);
+    // New arrivals keep the preview's order when listed newest first.
+    expect(Product::query()->where('is_new', true)->latest()->orderByDesc('id')->pluck('slug')->all())
+        ->toBe([
+            'round-brass-mirror',
+            'round-dining-table',
+            'walnut-gold-console',
+            'bonsai-ficus',
+            'cast-iron-casserole',
+            'tripod-table-lamp',
+            'ivory-ceramic-vase',
+            'amber-glass-vase',
+            'still-life-flowers',
+            'swivel-lounge-chair',
+            'sand-three-seater',
+            'natural-oak-bed',
+        ]);
+
+    // The sections, in the preview's order, each with its photo.
+    expect(Category::query()->orderBy('sort_order')->pluck('slug')->all())
+        ->toBe(['mirrors', 'tables', 'consoles', 'plants', 'kitchen', 'lamps', 'vases', 'accessories', 'paintings', 'chairs', 'furniture']);
+    Category::query()->get()->each(fn (Category $category) => expect($category->getFirstMedia('image'))->not->toBeNull());
+
+    // Some pieces have more than one photo, so the product gallery shows in the demo.
+    expect(Product::query()->where('slug', 'emerald-velvet-sofa')->firstOrFail()->getMedia('gallery'))->toHaveCount(3);
+
+    // Every piece says what it is made of and how big it is.
+    expect(Product::query()->where(fn ($query) => $query->whereNull('material_ar')->orWhereNull('width_cm'))->count())->toBe(0);
+
+    // The About page tells the store's story instead of placeholder text.
+    expect(Page::query()->where('slug', 'about')->value('body_ar'))->toContain('خشب الجوز')->not->toContain('نص مؤقت');
 
     // Banners carry both the desktop and phone images.
     Banner::query()->get()->each(function (Banner $banner) {
@@ -96,7 +163,7 @@ it('builds the store from the demo, and running it again changes nothing', funct
     });
 
     // Offers are running after seeding, unlike the demo's expired countdown.
-    expect(Offer::query()->active()->count())->toBe(5);
+    expect(Offer::query()->active()->count())->toBe(7);
 
     // The source images survive so the seeder can run again.
     expect(database_path('seeders/demo/p-emerald-sofa.webp'))->toBeFile();
